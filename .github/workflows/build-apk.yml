@@ -34,12 +34,31 @@ jobs:
           npx cap init "YildizTakip" "com.yildiztakip.app" --web-dir www
           npx cap add android
 
+          # 1. Kök build.gradle seviyesinde tüm modüllere Kotlin exclude kuralı tanımla
+          cat << 'EOF' >> android/build.gradle
+
+          allprojects {
+              configurations.all {
+                  exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+                  exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+              }
+          }
+          EOF
+
+          # 2. Bellek yetersizliği (OOM) ve çökmesini engellemek için JVM ayarlarını optimize et
+          echo "org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
+
       - name: APK ve AAB Paketlerini Derle
         run: |
           cd build-dir/android
           chmod +x gradlew
-          ./gradlew assembleDebug
-          ./gradlew bundleDebug
+          
+          # Android SDK lisanslarını otomatik kabul et
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+          # Paketleri derle
+          ./gradlew assembleDebug --no-daemon
+          ./gradlew bundleDebug --no-daemon
 
       - name: APK Dosyasını Yükle
         uses: actions/upload-artifact@v4
