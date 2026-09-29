@@ -640,42 +640,23 @@
       } catch (err) {}
     }
 
-    let englishVoice = null;
-    function getBestEnglishVoice() {
-      if (!('speechSynthesis' in window)) return null;
-      const voices = window.speechSynthesis.getVoices();
-      if (!voices || voices.length === 0) return null;
-      return voices.find(v => (v.lang === 'en-US' || v.lang === 'en-GB') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Jenny') || v.name.includes('Zira') || v.name.includes('Female')))
-          || voices.find(v => (v.lang === 'en-US' || v.lang === 'en-GB'))
-          || voices.find(v => v.lang.startsWith('en'))
-          || null;
-    }
-
-    function initVoices() {
-      englishVoice = getBestEnglishVoice();
-    }
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = initVoices;
-      initVoices();
-    }
-
     function speakNumber(num) {
-      if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      if (!englishVoice) englishVoice = getBestEnglishVoice();
-
-      const utter = new SpeechSynthesisUtterance(numberToEnglish(num));
-      if (englishVoice) {
-        utter.voice = englishVoice;
-        utter.lang = englishVoice.lang;
-      } else {
-        utter.lang = 'en-US';
-      }
+      const text = numberToEnglish(num);
       const speedSelect = document.getElementById('voiceSpeedSelect');
-      utter.rate = parseFloat(speedSelect ? speedSelect.value : 0.75);
-      utter.pitch = 1.05;
-      window.speechSynthesis.speak(utter);
+      const speed = speedSelect ? parseFloat(speedSelect.value) : 0.75;
+
+      if (window.parent && typeof window.parent.speakGlobal === 'function') {
+        window.parent.speakGlobal(text, speed);
+      } else if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'en-US';
+        utter.rate = speed;
+        utter.pitch = 1.05;
+        window.speechSynthesis.speak(utter);
+      }
     }
+
     const state = { currentMin: 1, currentMax: 20, currentNumber: null, isRolling: false, wordsHidden: false, history: [], quizTarget: null, quizScore: 0, quizStreak: 0, quizLocked: false, bingoDrawn: new Set() };
     const numberDigit = document.getElementById('numberDigit');
     const numberWords = document.getElementById('numberWords');
@@ -893,53 +874,19 @@
     </div>
   </main>
   <script>
-    let englishVoice = null;
-    let voicesReady = false;
-
-    function getBestEnglishVoice() {
-      if (!('speechSynthesis' in window)) return null;
-      const voices = window.speechSynthesis.getVoices();
-      if (!voices || voices.length === 0) return null;
-      return voices.find(v => (v.lang === 'en-US' || v.lang === 'en-GB') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Jenny') || v.name.includes('Zira') || v.name.includes('Female')))
-          || voices.find(v => (v.lang === 'en-US' || v.lang === 'en-GB'))
-          || voices.find(v => v.lang.startsWith('en'))
-          || null;
-    }
-
-    function initVoices() {
-      const v = getBestEnglishVoice();
-      if (v) {
-        englishVoice = v;
-        voicesReady = true;
-      }
-    }
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        initVoices();
-      };
-      initVoices();
-    }
-
     function speak(txt, callback) {
-      if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-
-      if (!englishVoice) {
-        englishVoice = getBestEnglishVoice();
-      }
-
-      const u = new SpeechSynthesisUtterance(txt);
-      if (englishVoice) {
-        u.voice = englishVoice;
-        u.lang = englishVoice.lang;
-      } else {
+      if (window.parent && typeof window.parent.speakGlobal === 'function') {
+        window.parent.speakGlobal(txt, 0.82);
+        if (callback) setTimeout(callback, 1200);
+      } else if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(txt);
         u.lang = 'en-US';
+        u.rate = 0.82;
+        u.pitch = 1.05;
+        if (callback) u.onend = callback;
+        window.speechSynthesis.speak(u);
       }
-      u.rate = 0.82;
-      u.pitch = 1.05;
-      if (callback) u.onend = callback;
-      window.speechSynthesis.speak(u);
     }
 
     const COLORS = [
@@ -965,12 +912,7 @@
       document.getElementById('promptText').innerHTML = `“The ${a.name} is <span class="bg-indigo-100 text-indigo-700 px-3 py-0.5 rounded-xl border border-indigo-300">???</span>”`;
       
       if (shouldSpeak) {
-        const executeSpeak = () => speak(`The ${a.name} is ${targetColor.name}!`);
-        if (!englishVoice) {
-          setTimeout(executeSpeak, 250);
-        } else {
-          executeSpeak();
-        }
+        setTimeout(() => speak(`The ${a.name} is ${targetColor.name}!`), 250);
       }
     }
 
@@ -1001,10 +943,7 @@
     
     window.onload = () => { 
       renderPalette(); 
-      setTimeout(() => {
-        initVoices();
-        setupRound(true);
-      }, 200);
+      setTimeout(() => setupRound(true), 300);
     };
   </script>
 </body>
@@ -1012,6 +951,47 @@
   </template>
 
   <script>
+    // --- ANDROID WEBVIEW GLOBAL SES MOTORU ---
+    let cachedEnglishVoice = null;
+
+    function getBestEnglishVoice() {
+      if (!('speechSynthesis' in window)) return null;
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices || voices.length === 0) return null;
+      return voices.find(v => (v.lang === 'en-US' || v.lang === 'en-GB') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Jenny') || v.name.includes('Zira') || v.name.includes('Female')))
+          || voices.find(v => (v.lang === 'en-US' || v.lang === 'en-GB'))
+          || voices.find(v => v.lang.startsWith('en'))
+          || null;
+    }
+
+    function initVoices() {
+      cachedEnglishVoice = getBestEnglishVoice();
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = initVoices;
+      initVoices();
+    }
+
+    window.speakGlobal = function(text, rate = 0.8) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+
+      if (!cachedEnglishVoice) cachedEnglishVoice = getBestEnglishVoice();
+
+      const utter = new SpeechSynthesisUtterance(text);
+      if (cachedEnglishVoice) {
+        utter.voice = cachedEnglishVoice;
+        utter.lang = cachedEnglishVoice.lang;
+      } else {
+        utter.lang = 'en-US';
+      }
+      utter.rate = rate;
+      utter.pitch = 1.05;
+
+      window.speechSynthesis.speak(utter);
+    };
+
     const MASCOTS = [
       { key: "dragon", name: "Dragon", emoji: "🐉" },
       { key: "unicorn", name: "Unicorn", emoji: "🦄" },
