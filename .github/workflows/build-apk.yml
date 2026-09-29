@@ -24,19 +24,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Android SDK Hazirla
-        uses: android-actions/setup-android@v3
-
       - name: Web Uygulamasını Android Projesine Dönüştür
         run: |
-          mkdir build-dir
-          cp index.html build-dir/
+          mkdir -p build-dir/www
+          cp index.html build-dir/www/
           cd build-dir
           npm init -y
-          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
-          npx cap init "YildizTakip" "com.yildiztakip.app" --web-dir .
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init "YildizTakip" "com.yildiztakip.app" --web-dir www
           npx cap add android
-          npx cap sync android
 
       - name: APK ve AAB Paketlerini Derle
         run: |
