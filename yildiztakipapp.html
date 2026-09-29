@@ -1,0 +1,2170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classroom Star & Mascot Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    @keyframes starPop {
+      0% { transform: scale(0.3); opacity: 0; }
+      70% { transform: scale(1.3); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .star-pop {
+      animation: starPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      display: inline-block;
+      user-select: none;
+    }
+    .mascot-unit {
+      transition: transform 0.25s ease, filter 0.3s ease;
+    }
+    .mascot-unit:hover {
+      transform: scale(1.2) rotate(4deg);
+    }
+    /* Wheel Pointer */
+    .wheel-pointer {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-top: 28px solid #ef4444;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+      z-index: 20;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-16 font-sans">
+
+  <!-- Header & Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3">
+      
+      <!-- Left: Logo & Dynamic Class Tabs -->
+      <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start flex-wrap">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-md font-bold">
+            ★
+          </div>
+          <span class="font-bold text-slate-800 text-sm hidden sm:inline">Star Tracker</span>
+        </div>
+
+        <!-- Class Selector Tabs & Add Class Button -->
+        <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 overflow-x-auto max-w-[280px] sm:max-w-md">
+          <div id="classTabsContainer" class="flex items-center gap-1">
+            <!-- Dynamic class tabs render here -->
+          </div>
+          <button 
+            onclick="openClassModal()" 
+            title="Add or Manage Classes"
+            class="px-2.5 py-1.5 text-xs font-bold rounded-lg transition bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-1 shrink-0 shadow-sm"
+          >
+            <span>+</span>
+            <span>Add / Manage</span>
+          </button>
+        </div>
+
+        <!-- Mobile Undo Button -->
+        <button id="undoBtnMob" onclick="undo()" class="md:hidden text-xs bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-lg font-semibold border border-slate-300 disabled:opacity-40">
+          ↩
+        </button>
+      </div>
+
+      <!-- Center: Search Box -->
+      <div class="relative w-full md:w-52">
+        <input 
+          type="text" 
+          id="searchInput" 
+          oninput="render()" 
+          placeholder="Search student..." 
+          class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+        >
+        <span class="absolute left-2.5 top-2 text-slate-400 text-xs">🔍</span>
+      </div>
+
+      <!-- Right: Wheel, Games (🎮), Save, View Modes & Undo -->
+      <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+        
+        <!-- WHEEL BUTTON -->
+        <button 
+          onclick="openPickerModal()" 
+          title="Open Wheel"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl text-xs font-extrabold shadow-sm active:scale-95 transition"
+        >
+          <span>🎡</span>
+          <span>Wheel</span>
+        </button>
+
+        <!-- GAMES BUTTON -->
+        <button 
+          onclick="openGamesModal()" 
+          title="Classroom Games"
+          class="w-9 h-9 flex items-center justify-center text-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white rounded-xl shadow-sm transition"
+        >
+          🎮
+        </button>
+
+        <!-- SAVE BUTTON (💾) -->
+        <div class="relative">
+          <button 
+            id="saveIconBtn" 
+            onclick="handleSaveClick()" 
+            title="Save changes"
+            class="w-9 h-9 flex items-center justify-center text-base rounded-xl transition shadow-sm bg-slate-800 hover:bg-slate-900 text-white"
+          >
+            💾
+          </button>
+          <span id="saveDot" class="hidden absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-ping"></span>
+          <span id="saveDotStatic" class="hidden absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white"></span>
+        </div>
+
+        <!-- View Mode Switcher -->
+        <div class="bg-slate-100 p-1 rounded-xl border border-slate-200 flex items-center gap-1">
+          <button id="btnList" onclick="setMode('list')" class="px-2.5 py-1 text-xs font-bold rounded-lg transition bg-white text-slate-800 shadow-sm">
+            ☰ List
+          </button>
+          <button id="btnGrid" onclick="setMode('grid')" class="px-2.5 py-1 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900">
+            ⊞ Cards
+          </button>
+        </div>
+
+        <!-- Desktop Undo Button -->
+        <button 
+          id="undoBtn" 
+          onclick="undo()" 
+          title="Undo"
+          class="hidden md:flex items-center justify-center w-9 h-9 text-sm bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold transition border border-slate-300 shadow-sm disabled:opacity-40 disabled:pointer-events-none"
+          disabled
+        >
+          ↩
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 pt-5">
+
+    <!-- Header Banner -->
+    <div class="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-2xl p-4 text-white shadow-md mb-5 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <span class="text-3xl">🐉</span>
+        <div>
+          <h2 id="classBannerTitle" class="text-base font-black tracking-wide">Classroom Leaderboard</h2>
+          <p class="text-xs text-amber-100">10★: 1st Mascot & Colors | 50★: 2nd Mascot | 100★: 3rd Mascot & Grand Celebration! | 🎡 Use Wheel for random student selection.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/30">
+        <span class="text-xs font-medium text-amber-100">Class Total:</span>
+        <span id="totalDisplay" class="text-lg font-black text-white">0 ★</span>
+      </div>
+    </div>
+
+    <!-- Dynamic Content Area -->
+    <div id="contentArea"></div>
+
+  </main>
+
+  <!-- ADD & MANAGE CLASS MODAL -->
+  <div id="classModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xl" id="classModalIcon">🏫</span>
+          <h3 class="text-base font-black text-slate-800" id="classModalTitle">Add & Manage Classes</h3>
+        </div>
+        <button onclick="closeClassModal()" class="text-slate-400 hover:text-slate-600 font-black text-sm">✕</button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Class Name</label>
+          <input 
+            type="text" 
+            id="newClassNameInput" 
+            placeholder="e.g., Grade 3-A, Starters, Advanced ESL..." 
+            class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 font-semibold"
+          >
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">
+            Student Names
+            <span class="text-slate-400 font-normal text-[11px]">(Separate with new lines or commas)</span>
+          </label>
+          <textarea 
+            id="newClassStudentsInput" 
+            rows="6" 
+            placeholder="John Doe&#10;Emily Smith&#10;Michael Brown&#10;Sarah Connor"
+            class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium font-mono"
+          ></textarea>
+        </div>
+
+        <!-- Manage Existing Classes Section -->
+        <div class="pt-2 border-t border-slate-100">
+          <p class="text-xs font-bold text-slate-700 mb-2">Existing Classes (Edit or Delete):</p>
+          <div id="existingClassesList" class="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-1">
+            <!-- Dynamic class edit/delete/view badges -->
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-3">
+          <button 
+            id="submitClassBtn"
+            onclick="handleClassFormSubmit()" 
+            class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-sm transition active:scale-95"
+          >
+            Create Class
+          </button>
+          <button 
+            id="cancelEditBtn"
+            onclick="cancelClassEdit()" 
+            class="hidden py-2.5 px-3 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+          >
+            Cancel Edit
+          </button>
+          <button 
+            onclick="closeClassModal()" 
+            class="py-2.5 px-4 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAMES MODAL -->
+  <div id="gamesModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex flex-col p-2 sm:p-4">
+    <div class="bg-white rounded-3xl w-full h-full flex flex-col overflow-hidden shadow-2xl border border-slate-200">
+      
+      <!-- Modal Top Bar -->
+      <div class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🎮</span>
+          <span class="font-extrabold text-sm tracking-wide">Classroom Game Station</span>
+        </div>
+
+        <!-- Game Switcher Tabs -->
+        <div class="flex items-center bg-slate-800 p-1 rounded-xl gap-1">
+          <button 
+            id="tabGameNumbers" 
+            onclick="switchGame('numbers')" 
+            class="px-3 py-1 text-xs font-black rounded-lg transition bg-amber-400 text-slate-950 shadow-sm flex items-center gap-1.5"
+          >
+            <span>🎲</span>
+            <span>Numbers Master</span>
+          </button>
+          <button 
+            id="tabGameColors" 
+            onclick="switchGame('colors')" 
+            class="px-3 py-1 text-xs font-black rounded-lg transition text-slate-300 hover:text-white flex items-center gap-1.5"
+          >
+            <span>🎨</span>
+            <span>Color Safari</span>
+          </button>
+        </div>
+
+        <!-- Close Button -->
+        <button 
+          onclick="closeGamesModal()" 
+          class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-black px-3 py-1.5 rounded-xl transition flex items-center gap-1"
+        >
+          <span>✕</span>
+          <span class="hidden sm:inline">Close</span>
+        </button>
+      </div>
+
+      <!-- Game Frame Content -->
+      <div class="flex-1 w-full h-full relative bg-slate-100">
+        <iframe id="gameIframe" class="w-full h-full border-0" sandbox="allow-scripts allow-same-origin allow-modals"></iframe>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RANDOM WHEEL MODAL -->
+  <div id="pickerModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+    <div id="pickerContainer" class="bg-white rounded-3xl max-w-2xl w-full p-5 shadow-2xl border border-slate-100 transform transition-all flex flex-col">
+      
+      <!-- Wheel Top Bar -->
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🎡</span>
+          <div>
+            <h3 class="text-base font-black text-slate-800">Random Turn Wheel</h3>
+            <p id="poolStatusText" class="text-[11px] font-semibold text-indigo-600">Active Class: --</p>
+          </div>
+        </div>
+
+        <!-- Elimination Mode Toggle -->
+        <div class="flex items-center gap-3 bg-slate-100 py-1 px-3 rounded-2xl border border-slate-200">
+          <span class="text-xs font-bold text-slate-700 select-none">Elimination Mode:</span>
+          <button 
+            id="toggleEliminationBtn" 
+            onclick="toggleEliminationMode()" 
+            class="relative inline-flex h-6 w-11 items-center rounded-full bg-slate-300 transition-colors focus:outline-none"
+          >
+            <span id="toggleEliminationDot" class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1 shadow-sm"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Wheel Layout -->
+      <div class="flex flex-col md:flex-row items-center md:items-start justify-center gap-4">
+        
+        <!-- Left: Selected List (Elimination Mode) -->
+        <div id="eliminatedSidebar" class="hidden w-full md:w-48 bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-col h-[320px] shrink-0">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-2">
+            <span class="text-xs font-black text-rose-600">🎯 Picked Students</span>
+            <button onclick="clearEliminatedList()" title="Reset list and return students to wheel" class="text-[10px] font-bold text-slate-500 hover:text-rose-600 transition">
+              Reset
+            </button>
+          </div>
+          
+          <div id="eliminatedListContainer" class="flex-1 overflow-y-auto space-y-1.5 pr-1">
+            <!-- Selected names appear here -->
+          </div>
+
+          <div id="eliminatedCountInfo" class="pt-2 text-[10px] text-center font-bold text-slate-400 border-t border-slate-200">
+            0 Students Picked
+          </div>
+        </div>
+
+        <!-- Right: Wheel & Actions -->
+        <div class="flex flex-col items-center justify-center flex-1 w-full">
+          <!-- Canvas & Pointer -->
+          <div class="relative w-[300px] h-[300px] my-1 flex items-center justify-center shrink-0">
+            <div class="wheel-pointer"></div>
+            <canvas id="wheelCanvas" width="300" height="300" class="rounded-full shadow-lg border-4 border-slate-800"></canvas>
+            <div class="absolute w-11 h-11 bg-white rounded-full border-4 border-slate-800 shadow-md flex items-center justify-center font-black text-xs text-slate-800 pointer-events-none">
+              ★
+            </div>
+          </div>
+
+          <!-- Winner Display -->
+          <div class="w-full bg-slate-900 rounded-xl p-2.5 my-2 border border-indigo-400/50 shadow-inner flex flex-col items-center justify-center min-h-[52px]">
+            <div id="pickerNameDisplay" class="text-sm sm:text-base font-black text-amber-300 tracking-wide text-center">
+              Ready to Spin!
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-2 w-full mt-1">
+            <button id="spinBtn" onclick="spinAnimatedWheel()" class="flex-1 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-extrabold text-sm rounded-xl shadow-md transition active:scale-95">
+              🎲 Spin Wheel
+            </button>
+            <button onclick="closePickerModal()" class="py-2.5 px-4 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition">
+              Close
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MASCOT CUSTOMIZER MODAL -->
+  <div id="mascotModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all text-center">
+      
+      <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-2 font-bold shadow-inner" id="modalHeaderIcon">
+        🎉
+      </div>
+      
+      <h3 class="text-lg font-black text-slate-800" id="modalStudentName">Congratulations!</h3>
+      <p class="text-xs text-slate-500 mb-4" id="modalSubDesc">Level up! Customize your mascot and glowing aura.</p>
+
+      <div id="slotSelectorContainer" class="hidden mb-4 bg-slate-100 p-1.5 rounded-2xl flex items-center justify-center gap-2">
+        <button id="slotBtn1" onclick="switchModalSlot(1)" class="flex-1 py-1.5 text-xs font-bold rounded-xl transition bg-white text-slate-800 shadow-sm">
+          1st Mascot
+        </button>
+        <button id="slotBtn2" onclick="switchModalSlot(2)" class="flex-1 py-1.5 text-xs font-bold rounded-xl transition text-slate-500 hover:text-slate-800">
+          2nd Mascot (50★)
+        </button>
+        <button id="slotBtn3" onclick="switchModalSlot(3)" class="flex-1 py-1.5 text-xs font-bold rounded-xl transition text-slate-500 hover:text-slate-800">
+          3rd Mascot (100★)
+        </button>
+      </div>
+
+      <div class="text-left text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+        <span>Select Mascot:</span>
+        <span id="currentSlotLabel" class="text-amber-600 text-[11px]">1st Mascot</span>
+      </div>
+      <div class="grid grid-cols-4 gap-2 mb-4" id="mascotOptions"></div>
+
+      <div class="text-left text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+        <span>Mascot Aura (Color):</span>
+        <span class="text-[10px] text-slate-400 font-medium">New aura every 10★</span>
+      </div>
+      <div class="grid grid-cols-4 gap-2 mb-6" id="colorOptions"></div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="saveMascotChoice()" class="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs rounded-xl shadow-sm transition">
+          Save & Close
+        </button>
+        <button onclick="closeMascotModal()" class="py-2.5 px-4 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT TEMPLATES FOR GAMES (NUMBERS & COLORS) -->
+  <template id="tmpl-numbers">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESL Fun Numbers Classroom Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    body { font-family: 'Fredoka', 'Nunito', system-ui, sans-serif; user-select: none; }
+    .bouncy-hover { transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .bouncy-hover:hover { transform: translateY(-3px) scale(1.02); }
+    .bouncy-hover:active { transform: translateY(1px) scale(0.98); }
+    @keyframes rollPulse { 0% { transform: scale(0.92); opacity: 0.7; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+    .animate-roll { animation: rollPulse 0.15s ease-in-out infinite alternate; }
+    @keyframes celebrationPop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+    .animate-pop { animation: celebrationPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .grid-number-cell { transition: all 0.25s ease; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-100 via-sky-100 to-amber-50 min-h-screen text-slate-800 flex flex-col justify-between">
+  <header class="w-full bg-white/90 backdrop-blur-md border-b-4 border-amber-300 shadow-sm px-4 py-3 sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-12 h-12 bg-amber-400 rounded-2xl flex items-center justify-center text-2xl shadow-md border-2 border-amber-500">🎲</div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-black tracking-wide text-indigo-900 leading-tight">ESL Number Master</h1>
+          <p class="text-xs sm:text-sm font-semibold text-emerald-600 flex items-center gap-1"><span>🔊 Smart English Audio & Classroom Practice</span></p>
+        </div>
+      </div>
+      <div class="flex items-center flex-wrap gap-2">
+        <button id="readingStyleToggleBtn" class="bg-violet-100 border-2 border-violet-300 hover:bg-violet-200 text-violet-950 px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition shadow-sm">
+          <span>✂️ 1000s:</span>
+          <span id="readingStyleLabel" class="bg-violet-600 text-white px-2 py-0.5 rounded-lg">Two-part (16-42)</span>
+        </button>
+        <div class="bg-indigo-50 border border-indigo-200 rounded-xl px-2.5 py-1 flex items-center gap-1.5 text-xs font-bold text-indigo-700">
+          <span>🐢 Speed:</span>
+          <select id="voiceSpeedSelect" class="bg-white border border-indigo-200 rounded-lg px-1.5 py-0.5 outline-none cursor-pointer">
+            <option value="0.75" selected>Slow (ESL)</option>
+            <option value="0.9">Normal</option>
+            <option value="0.6">Extra Slow</option>
+          </select>
+        </div>
+        <label class="cursor-pointer bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition shadow-sm">
+          <input type="checkbox" id="autoSpeakCheckbox" checked class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-400 cursor-pointer" />
+          <span>Auto Pronounce</span>
+        </label>
+        <button id="sfxToggleBtn" class="bg-amber-100 border border-amber-300 text-amber-800 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 hover:bg-amber-200 transition">
+          <span id="sfxIcon">🔔</span>
+          <span id="sfxText">SFX On</span>
+        </button>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-6xl w-full mx-auto px-4 py-5 flex-grow">
+    <div class="bg-white rounded-3xl p-3 sm:p-4 shadow-md border-2 border-indigo-100 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center flex-wrap gap-2 w-full md:w-auto">
+        <span class="text-xs font-black uppercase text-slate-500 tracking-wider">Range:</span>
+        <div class="inline-flex flex-wrap bg-slate-100 p-1.5 rounded-2xl gap-1.5" id="rangeButtons">
+          <button data-min="1" data-max="20" class="range-btn active bg-indigo-600 text-white px-3 py-1 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition">1 - 20</button>
+          <button data-min="20" data-max="50" class="range-btn px-3 py-1 rounded-xl text-xs sm:text-sm font-bold transition text-slate-600 hover:text-indigo-600">20 - 50</button>
+          <button data-min="50" data-max="100" class="range-btn px-3 py-1 rounded-xl text-xs sm:text-sm font-bold transition text-slate-600 hover:text-indigo-600">50 - 100</button>
+          <button data-min="100" data-max="1000" class="range-btn px-3 py-1 rounded-xl text-xs sm:text-sm font-bold transition text-slate-600 hover:text-indigo-600">100 - 1,000</button>
+          <button data-min="1000" data-max="10000" class="range-btn px-3 py-1 rounded-xl text-xs sm:text-sm font-bold transition text-slate-600 hover:text-indigo-600">1 - 10,000</button>
+        </div>
+      </div>
+      <div class="flex items-center flex-wrap gap-1.5 w-full md:w-auto justify-center">
+        <button id="tabMode1" class="mode-tab active px-3.5 py-2 rounded-2xl text-xs sm:text-sm font-black transition border-2 border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm flex items-center gap-1.5"><span>🎰</span><span>Roll &amp; Reveal</span></button>
+        <button id="tabMode2" class="mode-tab px-3.5 py-2 rounded-2xl text-xs sm:text-sm font-black transition border-2 border-transparent bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-1.5"><span>👂</span><span>Listen &amp; Guess</span></button>
+        <button id="tabMode3" class="mode-tab px-3.5 py-2 rounded-2xl text-xs sm:text-sm font-black transition border-2 border-transparent bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-1.5"><span>📋</span><span>Bingo Board (1-100)</span></button>
+      </div>
+    </div>
+    <section id="mode1Container" class="game-mode-section block">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        <div class="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-10 shadow-xl border-4 border-indigo-200 flex flex-col items-center justify-center text-center relative overflow-hidden min-h-[420px]">
+          <div class="mb-3 px-4 py-1 rounded-full bg-slate-100 text-slate-600 text-xs sm:text-sm font-bold border border-slate-200">
+            Current Range: <span id="currentRangeTag" class="text-indigo-600 font-black">1 to 20</span>
+          </div>
+          <div id="digitWrapper" class="relative my-2 py-4 px-8 rounded-3xl bg-gradient-to-b from-indigo-50/70 to-indigo-100/70 border-2 border-indigo-200 shadow-inner w-full max-w-md flex items-center justify-center min-h-[170px]">
+            <span id="numberDigit" class="text-6xl sm:text-8xl lg:text-9xl font-black text-indigo-700 tracking-tight drop-shadow-sm select-all break-all">--</span>
+          </div>
+          <div class="mt-4 min-h-[60px] flex flex-col items-center justify-center max-w-xl px-2">
+            <p id="numberWords" class="text-xl sm:text-3xl font-black text-rose-500 tracking-wide capitalize transition-all">Ready to Roll!</p>
+            <p id="numberSyllables" class="text-xs sm:text-sm font-semibold text-slate-400 mt-1">Click the big button below to begin</p>
+          </div>
+          <div class="mt-6 flex flex-wrap items-center justify-center gap-3 w-full">
+            <button id="rollBtn" class="bouncy-hover bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-indigo-950 font-black text-lg sm:text-xl px-8 py-4 rounded-2xl shadow-lg border-b-4 border-amber-600 flex items-center gap-3"><span class="text-2xl">🎲</span><span>ROLL NUMBER!</span></button>
+            <button id="pronounceBtn" class="bouncy-hover bg-indigo-600 hover:bg-indigo-500 text-white font-black text-base sm:text-lg px-6 py-4 rounded-2xl shadow-md border-b-4 border-indigo-800 flex items-center gap-2"><span id="speakIcon" class="text-xl">🔊</span><span>Say It Again</span></button>
+            <button id="toggleWordHideBtn" class="bouncy-hover bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm sm:text-base px-4 py-4 rounded-2xl border-2 border-slate-300 flex items-center gap-1.5"><span id="eyeIcon">👁️</span><span id="eyeText">Hide Spelling</span></button>
+          </div>
+        </div>
+        <div class="lg:col-span-4 flex flex-col gap-4">
+          <div class="bg-white rounded-3xl p-5 shadow-lg border-2 border-indigo-100 flex-1 flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b-2 border-slate-100">
+              <h3 class="font-black text-indigo-900 text-base flex items-center gap-2"><span>🕒</span><span>Recent Numbers</span></h3>
+              <button id="clearHistoryBtn" class="text-xs font-bold text-slate-400 hover:text-rose-500 transition">Clear</button>
+            </div>
+            <div id="historyList" class="flex-grow py-3 space-y-2 max-h-[220px] overflow-y-auto pr-1">
+              <div class="text-xs text-slate-400 text-center py-8 italic font-semibold">No numbers rolled yet. Roll one!</div>
+            </div>
+          </div>
+          <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl p-4 text-white shadow-md flex items-center justify-between">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider text-emerald-100">Quick Question</p>
+              <p id="mathFunFact" class="text-sm font-black mt-0.5">Is it Odd or Even?</p>
+            </div>
+            <div class="bg-white/20 p-2.5 rounded-2xl text-2xl">🎈</div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="mode2Container" class="game-mode-section hidden">
+      <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-indigo-200 max-w-3xl mx-auto text-center">
+        <div class="flex items-center justify-between bg-indigo-50 border border-indigo-200 px-4 py-2 rounded-2xl mb-6">
+          <div class="flex items-center gap-2 text-indigo-900 font-black"><span>⭐ Score:</span><span id="quizScore" class="text-emerald-600 text-xl">0</span></div>
+          <div class="flex items-center gap-2 text-indigo-900 font-black"><span>🔥 Streak:</span><span id="quizStreak" class="text-amber-500 text-xl">0</span></div>
+          <button id="resetQuizScoreBtn" class="text-xs font-bold text-slate-500 hover:text-rose-500">Reset Score</button>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-black text-indigo-900 mb-2">👂 Listen to the Mystery Voice!</h2>
+        <p class="text-sm font-semibold text-slate-500 mb-6">Click the speaker to hear the secret number, then choose the right card!</p>
+        <div class="my-6">
+          <button id="listenPromptBtn" class="bouncy-hover w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white text-5xl shadow-xl border-4 border-indigo-300 mx-auto flex items-center justify-center"><span>🔊</span></button>
+        </div>
+        <div id="quizFeedback" class="h-8 mb-4 font-black text-base sm:text-lg text-indigo-600">Ready? Click the speaker!</div>
+        <div id="quizOptionsContainer" class="grid grid-cols-2 gap-4 max-w-lg mx-auto"></div>
+        <div class="mt-8">
+          <button id="nextQuizBtn" class="bouncy-hover bg-emerald-500 hover:bg-emerald-400 text-white font-black text-base px-8 py-3 rounded-2xl shadow-md border-b-4 border-emerald-700 flex items-center gap-2 mx-auto"><span>Next Mystery Number</span><span>➔</span></button>
+        </div>
+      </div>
+    </section>
+    <section id="mode3Container" class="game-mode-section hidden">
+      <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-xl border-4 border-indigo-200">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b-2 border-slate-100 mb-4">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-black text-indigo-900 flex items-center gap-2"><span>📋</span><span>Classroom Bingo Board (1-100)</span></h2>
+            <p class="text-xs sm:text-sm font-semibold text-slate-500">Pick numbers one-by-one without duplicates.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="drawBingoBtn" class="bouncy-hover bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black text-sm sm:text-base px-5 py-2.5 rounded-2xl shadow-md border-b-4 border-rose-700"><span>🎱 Draw Next Ball!</span></button>
+            <button id="resetBingoBtn" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm px-3.5 py-2.5 rounded-2xl border border-slate-300">Reset Board</button>
+          </div>
+        </div>
+        <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-3 mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-14 h-14 bg-amber-400 rounded-2xl flex items-center justify-center text-3xl font-black text-indigo-950 border-2 border-amber-500 shadow-inner" id="lastBingoBall">--</div>
+            <div>
+              <span class="text-xs font-bold text-amber-700 uppercase">Last Called Number:</span>
+              <p id="lastBingoWord" class="text-lg font-black text-indigo-950">None yet</p>
+            </div>
+          </div>
+          <div class="text-xs font-black text-indigo-800 bg-white px-3 py-1.5 rounded-xl border border-amber-200">Drawn: <span id="bingoDrawnCount" class="text-rose-600 font-black">0</span> / <span id="bingoTotalCount">100</span></div>
+        </div>
+        <div class="overflow-x-auto pb-2">
+          <div id="bingoGrid" class="grid grid-cols-10 gap-1 sm:gap-1.5 min-w-[580px]"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const ONES = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+    const TEENS = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+    const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+    let readingStyle = 'two-part';
+    function convertUnderHundred(n) {
+      if (n === 0) return '';
+      if (n < 10) return ONES[n];
+      if (n < 20) return TEENS[n - 10];
+      const ten = Math.floor(n / 10);
+      const rem = n % 10;
+      return rem === 0 ? TENS[ten] : `${TENS[ten]}-${ONES[rem]}`;
+    }
+    function numberToEnglish(num) {
+      if (num === 0) return 'zero';
+      if (num === 10000) return 'ten thousand';
+      if (num >= 1000 && num <= 9999 && readingStyle === 'two-part') {
+        const firstTwo = Math.floor(num / 100);
+        const lastTwo = num % 100;
+        const firstPartStr = convertUnderHundred(firstTwo);
+        if (lastTwo === 0) return `${firstPartStr} hundred`;
+        if (lastTwo < 10) return `${firstPartStr} oh-${ONES[lastTwo]}`;
+        return `${firstPartStr} ${convertUnderHundred(lastTwo)}`;
+      }
+      let parts = [];
+      let temp = num;
+      if (temp >= 1000) { parts.push(convertUnderHundred(Math.floor(temp / 1000)) + ' thousand'); temp %= 1000; }
+      if (temp >= 100) { parts.push(ONES[Math.floor(temp / 100)] + ' hundred'); temp %= 100; }
+      if (temp > 0) parts.push(convertUnderHundred(temp));
+      return parts.join(' ');
+    }
+    function getSyllablesOrHint(num) {
+      if (num <= 10) return '⭐ Single-digit number';
+      if (num >= 11 && num <= 19) return '💡 Teen number (ends with "-teen")';
+      if (num < 100 && num % 10 === 0) return '🎯 Round ten number (ends with "-ty")';
+      if (num >= 100 && num < 1000) return '🏆 Hundreds place value';
+      if (num >= 1000 && num < 10000) return readingStyle === 'two-part' ? '✂️ Two-part split' : '🚀 Standard thousands';
+      if (num === 10000) return '🌟 10,000: Ten Thousand!';
+      return `Tens: ${TENS[Math.floor((num % 100) / 10)] || ''} + Ones: ${ONES[num % 10] || ''}`;
+    }
+    let sfxEnabled = true;
+    let audioCtx = null;
+    function playBeep(freq, type = 'sine', duration = 0.08, delay = 0) {
+      if (!sfxEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + delay);
+        osc.stop(audioCtx.currentTime + delay + duration);
+      } catch (err) {}
+    }
+
+    let englishVoice = null;
+    function getBestEnglishVoice() {
+      if (!('speechSynthesis' in window)) return null;
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices || voices.length === 0) return null;
+      return voices.find(v => (v.lang === 'en-US' || v.lang === 'en-GB') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Jenny') || v.name.includes('Zira') || v.name.includes('Female')))
+          || voices.find(v => (v.lang === 'en-US' || v.lang === 'en-GB'))
+          || voices.find(v => v.lang.startsWith('en'))
+          || null;
+    }
+
+    function initVoices() {
+      englishVoice = getBestEnglishVoice();
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = initVoices;
+      initVoices();
+    }
+
+    function speakNumber(num) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      if (!englishVoice) englishVoice = getBestEnglishVoice();
+
+      const utter = new SpeechSynthesisUtterance(numberToEnglish(num));
+      if (englishVoice) {
+        utter.voice = englishVoice;
+        utter.lang = englishVoice.lang;
+      } else {
+        utter.lang = 'en-US';
+      }
+      const speedSelect = document.getElementById('voiceSpeedSelect');
+      utter.rate = parseFloat(speedSelect ? speedSelect.value : 0.75);
+      utter.pitch = 1.05;
+      window.speechSynthesis.speak(utter);
+    }
+    const state = { currentMin: 1, currentMax: 20, currentNumber: null, isRolling: false, wordsHidden: false, history: [], quizTarget: null, quizScore: 0, quizStreak: 0, quizLocked: false, bingoDrawn: new Set() };
+    const numberDigit = document.getElementById('numberDigit');
+    const numberWords = document.getElementById('numberWords');
+    const numberSyllables = document.getElementById('numberSyllables');
+    const rollBtn = document.getElementById('rollBtn');
+    const pronounceBtn = document.getElementById('pronounceBtn');
+    const toggleWordHideBtn = document.getElementById('toggleWordHideBtn');
+    const eyeIcon = document.getElementById('eyeIcon');
+    const eyeText = document.getElementById('eyeText');
+    const currentRangeTag = document.getElementById('currentRangeTag');
+    const historyList = document.getElementById('historyList');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const autoSpeakCheckbox = document.getElementById('autoSpeakCheckbox');
+    const sfxToggleBtn = document.getElementById('sfxToggleBtn');
+    const readingStyleToggleBtn = document.getElementById('readingStyleToggleBtn');
+    const readingStyleLabel = document.getElementById('readingStyleLabel');
+    const rangeButtons = document.querySelectorAll('.range-btn');
+    const tabMode1 = document.getElementById('tabMode1');
+    const tabMode2 = document.getElementById('tabMode2');
+    const tabMode3 = document.getElementById('tabMode3');
+    const mode1Container = document.getElementById('mode1Container');
+    const mode2Container = document.getElementById('mode2Container');
+    const mode3Container = document.getElementById('mode3Container');
+    function rollRandomNumber() {
+      if (state.isRolling) return;
+      state.isRolling = true;
+      rollBtn.disabled = true;
+      rollBtn.classList.add('opacity-75');
+      numberDigit.classList.add('animate-roll');
+      numberWords.textContent = 'Rolling...';
+      let rollCount = 0;
+      const rollTimer = setInterval(() => {
+        rollCount++;
+        const rand = Math.floor(Math.random() * (state.currentMax - state.currentMin + 1)) + state.currentMin;
+        numberDigit.textContent = rand.toLocaleString();
+        playBeep(450, 'triangle', 0.04);
+        if (rollCount >= 14) { clearInterval(rollTimer); finalizeRoll(); }
+      }, 60);
+    }
+    function finalizeRoll() {
+      const finalNumber = Math.floor(Math.random() * (state.currentMax - state.currentMin + 1)) + state.currentMin;
+      state.currentNumber = finalNumber;
+      state.isRolling = false;
+      numberDigit.classList.remove('animate-roll');
+      numberDigit.textContent = finalNumber.toLocaleString();
+      updateDisplayWords();
+      document.getElementById('mathFunFact').textContent = `${finalNumber.toLocaleString()} is an ${finalNumber % 2 === 0 ? 'EVEN' : 'ODD'} number!`;
+      if (typeof confetti === 'function') confetti({ particleCount: 35, spread: 60, origin: { y: 0.65 } });
+      addToHistory(finalNumber);
+      if (autoSpeakCheckbox.checked) setTimeout(() => speakNumber(finalNumber), 150);
+      rollBtn.disabled = false;
+      rollBtn.classList.remove('opacity-75');
+    }
+    function updateDisplayWords() {
+      if (state.currentNumber === null) return;
+      numberWords.textContent = state.wordsHidden ? '??? (Hidden)' : numberToEnglish(state.currentNumber);
+      numberSyllables.textContent = getSyllablesOrHint(state.currentNumber);
+    }
+    function addToHistory(num) {
+      state.history.unshift({ num, word: numberToEnglish(num) });
+      if (state.history.length > 20) state.history.pop();
+      historyList.innerHTML = state.history.map(item => `
+        <div class="flex items-center justify-between bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer" onclick="speakNumber(${item.num})">
+          <span class="px-2 py-0.5 bg-indigo-600 text-white rounded-lg font-black text-xs">${item.num.toLocaleString()}</span>
+          <span class="text-xs font-bold text-slate-700 capitalize">${item.word}</span>
+          <span class="text-xs text-indigo-500">🔊</span>
+        </div>
+      `).join('');
+    }
+    readingStyleToggleBtn.addEventListener('click', () => {
+      readingStyle = readingStyle === 'two-part' ? 'standard' : 'two-part';
+      readingStyleLabel.textContent = readingStyle === 'two-part' ? 'Two-part (16-42)' : 'Standard (1,000s)';
+      updateDisplayWords();
+    });
+    rollBtn.addEventListener('click', rollRandomNumber);
+    pronounceBtn.addEventListener('click', () => speakNumber(state.currentNumber || state.currentMin));
+    toggleWordHideBtn.addEventListener('click', () => { state.wordsHidden = !state.wordsHidden; updateDisplayWords(); });
+    clearHistoryBtn.addEventListener('click', () => { state.history = []; historyList.innerHTML = ''; });
+    sfxToggleBtn.addEventListener('click', () => { sfxEnabled = !sfxEnabled; document.getElementById('sfxText').textContent = sfxEnabled ? 'SFX On' : 'SFX Off'; });
+    rangeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        rangeButtons.forEach(b => b.classList.remove('active', 'bg-indigo-600', 'text-white'));
+        btn.classList.add('active', 'bg-indigo-600', 'text-white');
+        state.currentMin = parseInt(btn.dataset.min, 10);
+        state.currentMax = parseInt(btn.dataset.max, 10);
+        currentRangeTag.textContent = `${state.currentMin.toLocaleString()} to ${state.currentMax.toLocaleString()}`;
+        if (!mode2Container.classList.contains('hidden')) startNewQuizQuestion();
+      });
+    });
+    function switchTab(mode) {
+      [tabMode1, tabMode2, tabMode3].forEach(t => { t.classList.remove('active', 'bg-indigo-50', 'text-indigo-700', 'border-indigo-500'); t.classList.add('bg-slate-100', 'text-slate-600'); });
+      [mode1Container, mode2Container, mode3Container].forEach(c => c.classList.add('hidden'));
+      if (mode === 1) { tabMode1.classList.add('active', 'bg-indigo-50', 'text-indigo-700', 'border-indigo-500'); mode1Container.classList.remove('hidden'); }
+      if (mode === 2) { tabMode2.classList.add('active', 'bg-indigo-50', 'text-indigo-700', 'border-indigo-500'); mode2Container.classList.remove('hidden'); startNewQuizQuestion(); }
+      if (mode === 3) { tabMode3.classList.add('active', 'bg-indigo-50', 'text-indigo-700', 'border-indigo-500'); mode3Container.classList.remove('hidden'); }
+    }
+    tabMode1.addEventListener('click', () => switchTab(1));
+    tabMode2.addEventListener('click', () => switchTab(2));
+    tabMode3.addEventListener('click', () => switchTab(3));
+    function startNewQuizQuestion() {
+      state.quizLocked = false;
+      const target = Math.floor(Math.random() * (state.currentMax - state.currentMin + 1)) + state.currentMin;
+      state.quizTarget = target;
+      const opts = new Set([target]);
+      while (opts.size < 4) opts.add(Math.floor(Math.random() * (state.currentMax - state.currentMin + 1)) + state.currentMin);
+      const arr = Array.from(opts).sort(() => Math.random() - 0.5);
+      document.getElementById('quizOptionsContainer').innerHTML = arr.map(opt => `
+        <button onclick="handleQuizAnswer(${opt}, this)" class="bg-slate-50 border-2 border-indigo-100 p-4 rounded-2xl text-2xl font-black text-indigo-900 flex flex-col items-center">
+          <span>${opt.toLocaleString()}</span>
+        </button>
+      `).join('');
+      setTimeout(() => speakNumber(target), 300);
+    }
+    window.handleQuizAnswer = function(opt, btn) {
+      if (state.quizLocked) return;
+      state.quizLocked = true;
+      if (opt === state.quizTarget) {
+        btn.classList.add('bg-emerald-500', 'text-white');
+        state.quizScore += 10;
+        state.quizStreak += 1;
+        if (typeof confetti === 'function') confetti({ particleCount: 30 });
+      } else {
+        btn.classList.add('bg-rose-500', 'text-white');
+        state.quizStreak = 0;
+      }
+      document.getElementById('quizScore').textContent = state.quizScore;
+      document.getElementById('quizStreak').textContent = state.quizStreak;
+    };
+    document.getElementById('listenPromptBtn').addEventListener('click', () => speakNumber(state.quizTarget));
+    document.getElementById('nextQuizBtn').addEventListener('click', startNewQuizQuestion);
+    document.getElementById('resetQuizScoreBtn').addEventListener('click', () => { state.quizScore = 0; state.quizStreak = 0; document.getElementById('quizScore').textContent = '0'; document.getElementById('quizStreak').textContent = '0'; });
+    function buildBingoGrid() {
+      const g = document.getElementById('bingoGrid');
+      g.innerHTML = '';
+      for (let i = 1; i <= 100; i++) {
+        const c = document.createElement('div');
+        c.id = `bingo-${i}`;
+        c.className = 'grid-number-cell h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-black text-slate-600 cursor-pointer';
+        c.textContent = i;
+        c.onclick = () => { speakNumber(i); toggleBingo(i); };
+        g.appendChild(c);
+      }
+    }
+    function toggleBingo(i) {
+      const c = document.getElementById(`bingo-${i}`);
+      if (state.bingoDrawn.has(i)) { state.bingoDrawn.delete(i); c.className = 'grid-number-cell h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-black text-slate-600 cursor-pointer'; }
+      else { state.bingoDrawn.add(i); c.className = 'grid-number-cell h-9 rounded-xl bg-amber-400 text-white font-black flex items-center justify-center text-xs'; document.getElementById('lastBingoBall').textContent = i; document.getElementById('lastBingoWord').textContent = numberToEnglish(i); }
+      document.getElementById('bingoDrawnCount').textContent = state.bingoDrawn.size;
+    }
+    document.getElementById('drawBingoBtn').addEventListener('click', () => {
+      const left = [];
+      for (let i = 1; i <= 100; i++) if (!state.bingoDrawn.has(i)) left.push(i);
+      if (left.length === 0) return alert('All numbers have been drawn!');
+      const d = left[Math.floor(Math.random() * left.length)];
+      toggleBingo(d);
+      speakNumber(d);
+    });
+    document.getElementById('resetBingoBtn').addEventListener('click', () => { state.bingoDrawn.clear(); buildBingoGrid(); document.getElementById('bingoDrawnCount').textContent = '0'; });
+    window.onload = buildBingoGrid;
+  </script>
+</body>
+</html>
+  </template>
+
+  <template id="tmpl-colors">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Color Safari: Animals & Colors</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    body { font-family: 'Fredoka', 'Nunito', system-ui, sans-serif; user-select: none; }
+    .bouncy-hover { transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .bouncy-hover:hover { transform: translateY(-4px) scale(1.03); }
+    .animal-fillable { transition: fill 0.4s ease, stroke 0.3s ease; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-emerald-100 via-sky-100 to-amber-100 min-h-screen text-slate-800 flex flex-col justify-between p-2 sm:p-4">
+  <header class="w-full max-w-5xl mx-auto bg-white/95 border-4 border-amber-300 rounded-3xl shadow-lg p-3 sm:p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center space-x-3">
+      <div class="w-12 h-12 bg-gradient-to-tr from-amber-400 to-orange-400 rounded-2xl flex items-center justify-center text-3xl shadow-md">🎨</div>
+      <div>
+        <h1 class="text-xl sm:text-2xl font-black text-indigo-950">Color Safari: Animals &amp; Colors</h1>
+        <p class="text-xs sm:text-sm font-bold text-emerald-600">🦁 Grade 2 ESL Listening &amp; Vocabulary</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="bg-amber-400/30 border-2 border-amber-400 px-3 py-1 rounded-2xl flex items-center gap-1.5">
+        <span>⭐</span><span id="scoreDisplay" class="font-black text-amber-900">0 Stars</span>
+      </div>
+      <button id="btnListenAgain" class="bouncy-hover bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md">🔊 Say Again</button>
+    </div>
+  </header>
+  <main class="w-full max-w-5xl mx-auto flex-grow flex flex-col gap-4">
+    <div class="bg-white rounded-3xl p-6 shadow-xl border-4 border-indigo-200 flex flex-col items-center justify-center text-center">
+      <div id="promptDisplayContainer" class="mb-4">
+        <p id="promptText" class="text-xl sm:text-2xl font-black text-indigo-900">"Listen to hear the secret color!"</p>
+      </div>
+      <div class="relative w-full max-w-md h-64 flex items-center justify-center my-2">
+        <div id="animalSvgStage" class="w-full h-full flex items-center justify-center"></div>
+      </div>
+      <div class="w-full flex items-center justify-between pt-4 border-t-2 border-slate-100">
+        <h3 id="animalNameTag" class="text-xl font-black text-slate-800 capitalize">The Cat</h3>
+        <button id="btnNextAnimal" class="bouncy-hover bg-emerald-500 text-white font-black text-sm px-6 py-2 rounded-xl shadow-md">Next Animal ➔</button>
+      </div>
+    </div>
+    <div class="bg-white rounded-3xl p-4 shadow-lg border-4 border-amber-200">
+      <div id="paletteGrid" class="grid grid-cols-5 sm:grid-cols-10 gap-2"></div>
+    </div>
+  </main>
+  <script>
+    let englishVoice = null;
+    let voicesReady = false;
+
+    function getBestEnglishVoice() {
+      if (!('speechSynthesis' in window)) return null;
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices || voices.length === 0) return null;
+      return voices.find(v => (v.lang === 'en-US' || v.lang === 'en-GB') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Jenny') || v.name.includes('Zira') || v.name.includes('Female')))
+          || voices.find(v => (v.lang === 'en-US' || v.lang === 'en-GB'))
+          || voices.find(v => v.lang.startsWith('en'))
+          || null;
+    }
+
+    function initVoices() {
+      const v = getBestEnglishVoice();
+      if (v) {
+        englishVoice = v;
+        voicesReady = true;
+      }
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        initVoices();
+      };
+      initVoices();
+    }
+
+    function speak(txt, callback) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+
+      if (!englishVoice) {
+        englishVoice = getBestEnglishVoice();
+      }
+
+      const u = new SpeechSynthesisUtterance(txt);
+      if (englishVoice) {
+        u.voice = englishVoice;
+        u.lang = englishVoice.lang;
+      } else {
+        u.lang = 'en-US';
+      }
+      u.rate = 0.82;
+      u.pitch = 1.05;
+      if (callback) u.onend = callback;
+      window.speechSynthesis.speak(u);
+    }
+
+    const COLORS = [
+      { id: 'red', name: 'Red', hex: '#ef4444' }, { id: 'blue', name: 'Blue', hex: '#3b82f6' },
+      { id: 'green', name: 'Green', hex: '#22c55e' }, { id: 'yellow', name: 'Yellow', hex: '#eab308' },
+      { id: 'orange', name: 'Orange', hex: '#f97316' }, { id: 'purple', name: 'Purple', hex: '#a855f7' },
+      { id: 'pink', name: 'Pink', hex: '#ec4899' }, { id: 'brown', name: 'Brown', hex: '#854d0e' },
+      { id: 'black', name: 'Black', hex: '#1e293b' }, { id: 'grey', name: 'Grey', hex: '#94a3b8' }
+    ];
+    const ANIMALS = [
+      { name: 'cat', displayName: 'The Cat', svg: (f) => `<svg viewBox="0 0 200 200" class="w-52 h-52"><polygon points="50,90 60,30 95,70" fill="${f}" stroke="#1e293b" stroke-width="5" class="animal-fillable" /><polygon points="150,90 140,30 105,70" fill="${f}" stroke="#1e293b" stroke-width="5" class="animal-fillable" /><ellipse cx="100" cy="145" rx="55" ry="45" fill="${f}" stroke="#1e293b" stroke-width="5" class="animal-fillable" /><ellipse cx="100" cy="100" rx="52" ry="46" fill="${f}" stroke="#1e293b" stroke-width="5" class="animal-fillable" /><circle cx="80" cy="95" r="7" fill="#1e293b" /><circle cx="120" cy="95" r="7" fill="#1e293b" /></svg>` },
+      { name: 'frog', displayName: 'The Frog', svg: (f) => `<svg viewBox="0 0 200 200" class="w-52 h-52"><circle cx="68" cy="72" r="24" fill="${f}" stroke="#1e293b" stroke-width="5" class="animal-fillable" /><circle cx="132" cy="72" r="24" fill="${f}" stroke="#1e293b" stroke-width="5" class="animal-fillable" /><ellipse cx="100" cy="120" rx="60" ry="42" fill="${f}" stroke="#1e293b" stroke-width="5" class="animal-fillable" /><circle cx="68" cy="72" r="8" fill="#1e293b" /><circle cx="132" cy="72" r="8" fill="#1e293b" /></svg>` },
+      { name: 'elephant', displayName: 'The Elephant', svg: (f) => `<svg viewBox="0 0 200 200" class="w-52 h-52"><circle cx="48" cy="95" r="32" fill="${f}" stroke="#1e293b" stroke-width="5" class="animal-fillable" /><circle cx="152" cy="95" r="32" fill="${f}" stroke="#1e293b" stroke-width="5" class="animal-fillable" /><ellipse cx="100" cy="120" rx="50" ry="42" fill="${f}" stroke="#1e293b" stroke-width="5" class="animal-fillable" /><path d="M 94 115 Q 92 155 115 155 Z" fill="${f}" stroke="#1e293b" stroke-width="4" class="animal-fillable" /></svg>` },
+      { name: 'duck', displayName: 'The Duck', svg: (f) => `<svg viewBox="0 0 200 200" class="w-52 h-52"><ellipse cx="95" cy="140" rx="55" ry="38" fill="${f}" stroke="#1e293b" stroke-width="5" class="animal-fillable" /><circle cx="125" cy="80" r="34" fill="${f}" stroke="#1e293b" stroke-width="5" class="animal-fillable" /><path d="M 148 76 Q 185 85 152 98 Z" fill="#fb923c" stroke="#1e293b" stroke-width="4" /><circle cx="132" cy="74" r="5" fill="#1e293b" /></svg>` }
+    ];
+    let curIdx = 0; let targetColor = null; let score = 0;
+
+    function setupRound(shouldSpeak = true) {
+      const a = ANIMALS[curIdx];
+      targetColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+      document.getElementById('animalNameTag').textContent = a.displayName;
+      document.getElementById('animalSvgStage').innerHTML = a.svg('#f1f5f9');
+      document.getElementById('promptText').innerHTML = `“The ${a.name} is <span class="bg-indigo-100 text-indigo-700 px-3 py-0.5 rounded-xl border border-indigo-300">???</span>”`;
+      
+      if (shouldSpeak) {
+        const executeSpeak = () => speak(`The ${a.name} is ${targetColor.name}!`);
+        if (!englishVoice) {
+          setTimeout(executeSpeak, 250);
+        } else {
+          executeSpeak();
+        }
+      }
+    }
+
+    function renderPalette() {
+      const g = document.getElementById('paletteGrid');
+      g.innerHTML = '';
+      COLORS.forEach(c => {
+        const b = document.createElement('button');
+        b.className = 'bouncy-hover flex flex-col items-center justify-center p-2 rounded-2xl text-white font-bold text-xs';
+        b.style.backgroundColor = c.hex;
+        b.textContent = c.name;
+        b.onclick = () => {
+          if (c.id === targetColor.id) {
+            score++;
+            document.getElementById('scoreDisplay').textContent = `${score} Stars`;
+            document.querySelectorAll('.animal-fillable').forEach(el => el.setAttribute('fill', c.hex));
+            if (typeof confetti === 'function') confetti({ particleCount: 40 });
+            speak(`Great job! The ${ANIMALS[curIdx].name} is ${c.name}!`);
+          } else {
+            speak(`Try again! Find ${targetColor.name}!`);
+          }
+        };
+        g.appendChild(b);
+      });
+    }
+    document.getElementById('btnListenAgain').onclick = () => speak(`The ${ANIMALS[curIdx].name} is ${targetColor.name}!`);
+    document.getElementById('btnNextAnimal').onclick = () => { curIdx = (curIdx + 1) % ANIMALS.length; setupRound(true); };
+    
+    window.onload = () => { 
+      renderPalette(); 
+      setTimeout(() => {
+        initVoices();
+        setupRound(true);
+      }, 200);
+    };
+  </script>
+</body>
+</html>
+  </template>
+
+  <script>
+    const MASCOTS = [
+      { key: "dragon", name: "Dragon", emoji: "🐉" },
+      { key: "unicorn", name: "Unicorn", emoji: "🦄" },
+      { key: "football", name: "Football Player", emoji: "⚽" },
+      { key: "basketball", name: "Basketball Player", emoji: "🏀" },
+      { key: "volleyball", name: "Volleyball Player", emoji: "🏐" },
+      { key: "queen", name: "Queen", emoji: "👑" },
+      { key: "king", name: "King", emoji: "🤴" },
+      { key: "barbie", name: "Barbie", emoji: "🎀" }
+    ];
+
+    const MASCOT_COLORS = [
+      { id: "default", name: "Default", minStars: 10, filter: "none", dotBg: "bg-slate-400" },
+      { id: "gold", name: "Golden Glow", minStars: 20, filter: "sepia(1) saturate(5) hue-rotate(10deg) drop-shadow(0 0 6px #f59e0b)", dotBg: "bg-amber-400" },
+      { id: "sapphire", name: "Sapphire Blue", minStars: 30, filter: "sepia(1) saturate(6) hue-rotate(180deg) drop-shadow(0 0 6px #0ea5e9)", dotBg: "bg-sky-500" },
+      { id: "emerald", name: "Emerald Green", minStars: 40, filter: "sepia(1) saturate(5) hue-rotate(90deg) drop-shadow(0 0 6px #10b981)", dotBg: "bg-emerald-500" },
+      { id: "ruby", name: "Ruby Pink", minStars: 50, filter: "sepia(1) saturate(6) hue-rotate(310deg) drop-shadow(0 0 6px #f43f5e)", dotBg: "bg-rose-500" },
+      { id: "magic", name: "Mystic Purple", minStars: 60, filter: "sepia(1) saturate(6) hue-rotate(240deg) drop-shadow(0 0 6px #a855f7)", dotBg: "bg-purple-500" },
+      { id: "fire", name: "Blazing Orange", minStars: 70, filter: "saturate(8) hue-rotate(340deg) drop-shadow(0 0 8px #f97316)", dotBg: "bg-orange-500" },
+      { id: "rainbow", name: "Rainbow Aura", minStars: 80, filter: "drop-shadow(0 0 8px #ec4899) drop-shadow(0 0 12px #38bdf8)", dotBg: "bg-gradient-to-r from-rose-400 via-amber-400 to-sky-400" }
+    ];
+
+    const STORAGE_KEY = 'classroom_star_tracker_data';
+    const DEFAULT_DATA = {
+      "Class 1": [
+        { id: 1, name: "Alice", surname: "Johnson", stars: 0, mascots: { slot1: null, color1: "default", slot2: null, color2: "default", slot3: null, color3: "default" } },
+        { id: 2, name: "Bob", surname: "Smith", stars: 0, mascots: { slot1: null, color1: "default", slot2: null, color2: "default", slot3: null, color3: "default" } }
+      ]
+    };
+
+    function loadClassDataFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.error("Storage loading error:", e);
+      }
+      return DEFAULT_DATA;
+    }
+
+    let classData = loadClassDataFromStorage();
+    let activeClass = Object.keys(classData)[0] || '';
+    let history = [];
+    let currentMode = 'list';
+    let hasUnsavedChanges = false;
+
+    let editingClassName = null;
+
+    let modalStudentId = null;
+    let currentActiveSlot = 1;
+    let tempMascots = {};
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function getAudio() {
+      if (!audioCtx) audioCtx = new AudioContext();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playTone(freq, duration = 0.15) {
+      try {
+        const ctx = getAudio();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playLevelUpMelody() {
+      try {
+        const ctx = getAudio();
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          setTimeout(() => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.18, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.22);
+          }, idx * 100);
+        });
+      } catch (e) {}
+    }
+
+    function playGrandFanfare() {
+      try {
+        const ctx = getAudio();
+        const fanfare = [
+          { f: 523.25, d: 0.15 }, { f: 523.25, d: 0.15 }, { f: 523.25, d: 0.15 },
+          { f: 659.25, d: 0.35 }, { f: 587.33, d: 0.18 }, { f: 659.25, d: 0.18 },
+          { f: 783.99, d: 0.55 }, { f: 1046.50, d: 0.8 }
+        ];
+        let delay = 0;
+        fanfare.forEach(item => {
+          setTimeout(() => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = item.f;
+            gain.gain.setValueAtTime(0.28, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + item.d);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + item.d);
+          }, delay);
+          delay += item.d * 900;
+        });
+      } catch (e) {}
+    }
+
+    function triggerRandomMilestoneEffect() {
+      if (typeof confetti !== 'function') return;
+      playLevelUpMelody();
+      confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
+    }
+
+    function triggerGrandGrandCelebration() {
+      if (typeof confetti !== 'function') return;
+      playGrandFanfare();
+      const end = Date.now() + 2500;
+      const interval = setInterval(() => {
+        if (Date.now() > end) return clearInterval(interval);
+        confetti({
+          startVelocity: 35,
+          spread: 360,
+          ticks: 70,
+          origin: { x: Math.random(), y: Math.random() * 0.5 },
+          colors: ['#ffd700', '#ff007f', '#00e5ff', '#76ff03', '#ffffff']
+        });
+      }, 250);
+    }
+
+    // --- DYNAMIC CLASS TABS & EDIT MANAGEMENT ---
+    function renderClassTabs() {
+      const container = document.getElementById('classTabsContainer');
+      container.innerHTML = '';
+
+      const classNames = Object.keys(classData);
+      if (classNames.length === 0) {
+        activeClass = '';
+        document.getElementById('classBannerTitle').textContent = 'No Class Available';
+        updateTotal();
+        render();
+        return;
+      }
+
+      if (!activeClass || !classData[activeClass]) {
+        activeClass = classNames[0];
+      }
+
+      classNames.forEach(cls => {
+        const btn = document.createElement('button');
+        const isActive = cls === activeClass;
+        btn.className = `px-3 py-1.5 text-xs font-bold rounded-lg transition whitespace-nowrap ${
+          isActive 
+            ? 'bg-white text-slate-900 shadow-sm' 
+            : 'text-slate-600 hover:text-slate-900'
+        }`;
+        btn.textContent = cls;
+        btn.onclick = () => switchClass(cls);
+        container.appendChild(btn);
+      });
+
+      document.getElementById('classBannerTitle').textContent = `${activeClass} Leaderboard`;
+      updateTotal();
+      render();
+    }
+
+    function switchClass(cls) {
+      activeClass = cls;
+      renderClassTabs();
+      updateEliminatedListUI();
+    }
+
+    function openClassModal() {
+      resetClassForm();
+      renderExistingClassesList();
+      document.getElementById('classModal').classList.remove('hidden');
+    }
+
+    function closeClassModal() {
+      document.getElementById('classModal').classList.add('hidden');
+      resetClassForm();
+    }
+
+    function resetClassForm() {
+      editingClassName = null;
+      document.getElementById('classModalTitle').textContent = "Add & Manage Classes";
+      document.getElementById('classModalIcon').textContent = "🏫";
+      document.getElementById('submitClassBtn').textContent = "Create Class";
+      document.getElementById('submitClassBtn').className = "flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-sm transition active:scale-95";
+      document.getElementById('cancelEditBtn').classList.add('hidden');
+      document.getElementById('newClassNameInput').value = '';
+      document.getElementById('newClassStudentsInput').value = '';
+    }
+
+    function editClass(clsName) {
+      const students = classData[clsName] || [];
+      editingClassName = clsName;
+
+      document.getElementById('classModalTitle').textContent = `Editing: ${clsName}`;
+      document.getElementById('classModalIcon').textContent = "✏️";
+      document.getElementById('newClassNameInput').value = clsName;
+      
+      const formattedStudents = students.map(s => `${s.name} ${s.surname}`.trim()).join('\n');
+      document.getElementById('newClassStudentsInput').value = formattedStudents;
+
+      document.getElementById('submitClassBtn').textContent = "Update Class";
+      document.getElementById('submitClassBtn').className = "flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition active:scale-95";
+      document.getElementById('cancelEditBtn').classList.remove('hidden');
+    }
+
+    function cancelClassEdit() {
+      resetClassForm();
+      renderExistingClassesList();
+    }
+
+    function renderExistingClassesList() {
+      const box = document.getElementById('existingClassesList');
+      box.innerHTML = '';
+      const keys = Object.keys(classData);
+
+      if (keys.length === 0) {
+        box.innerHTML = '<span class="text-xs text-slate-400 italic">No classes yet.</span>';
+        return;
+      }
+
+      keys.forEach(cls => {
+        const count = classData[cls].length;
+        const tag = document.createElement('div');
+        const isCurrentlyEditing = editingClassName === cls;
+        tag.className = `inline-flex items-center gap-1.5 border px-2.5 py-1 rounded-xl text-xs font-semibold ${
+          isCurrentlyEditing ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'bg-slate-100 border-slate-200 text-slate-700'
+        }`;
+        tag.innerHTML = `
+          <span>${cls} (${count})</span>
+          <button onclick="editClass('${cls}')" title="Edit class" class="text-indigo-500 hover:text-indigo-700 font-bold ml-1">✏️</button>
+          <button onclick="deleteClass('${cls}')" title="Delete class" class="text-slate-400 hover:text-rose-600 font-bold">✕</button>
+        `;
+        box.appendChild(tag);
+      });
+    }
+
+    function deleteClass(clsName) {
+      if (!confirm(`Are you sure you want to delete "${clsName}"? All student progress will be removed.`)) return;
+      pushHistory();
+      delete classData[clsName];
+      if (eliminatedStudents[clsName]) delete eliminatedStudents[clsName];
+      if (editingClassName === clsName) resetClassForm();
+
+      persistChanges();
+      renderExistingClassesList();
+      renderClassTabs();
+    }
+
+    function handleClassFormSubmit() {
+      const nameInput = document.getElementById('newClassNameInput');
+      const studentsInput = document.getElementById('newClassStudentsInput');
+
+      const rawClassName = nameInput.value.trim();
+      const rawText = studentsInput.value.trim();
+
+      if (!rawClassName) {
+        alert('Please enter a class name.');
+        return;
+      }
+
+      if (!editingClassName && classData[rawClassName]) {
+        alert('A class with this name already exists!');
+        return;
+      }
+      if (editingClassName && editingClassName !== rawClassName && classData[rawClassName]) {
+        alert('A class with this new name already exists!');
+        return;
+      }
+
+      let rawList = [];
+      if (rawText.includes('\n')) {
+        rawList = rawText.split('\n');
+      } else if (rawText.includes(',')) {
+        rawList = rawText.split(',');
+      } else if (rawText.length > 0) {
+        rawList = [rawText];
+      }
+
+      const existingStudents = editingClassName ? (classData[editingClassName] || []) : [];
+      const parsedStudents = [];
+      let baseId = Date.now();
+
+      rawList.forEach((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+
+        const parts = trimmed.split(/\s+/);
+        let firstName = '';
+        let lastName = '';
+
+        if (parts.length === 1) {
+          firstName = parts[0];
+          lastName = '';
+        } else {
+          lastName = parts.pop();
+          firstName = parts.join(' ');
+        }
+
+        const match = existingStudents.find(
+          s => `${s.name} ${s.surname}`.trim().toLowerCase() === `${firstName} ${lastName}`.trim().toLowerCase()
+        );
+
+        if (match) {
+          parsedStudents.push({
+            ...match,
+            name: firstName,
+            surname: lastName
+          });
+        } else {
+          parsedStudents.push({
+            id: baseId++,
+            name: firstName,
+            surname: lastName,
+            stars: 0,
+            mascots: { slot1: null, color1: "default", slot2: null, color2: "default", slot3: null, color3: "default" }
+          });
+        }
+      });
+
+      pushHistory();
+
+      if (editingClassName && editingClassName !== rawClassName) {
+        delete classData[editingClassName];
+        if (eliminatedStudents[editingClassName]) {
+          eliminatedStudents[rawClassName] = eliminatedStudents[editingClassName];
+          delete eliminatedStudents[editingClassName];
+        }
+      }
+
+      classData[rawClassName] = parsedStudents;
+      if (!eliminatedStudents[rawClassName]) eliminatedStudents[rawClassName] = [];
+      activeClass = rawClassName;
+
+      persistChanges();
+      closeClassModal();
+      renderClassTabs();
+    }
+
+    function persistChanges() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(classData));
+        setDirty(false);
+      } catch (e) {
+        console.error("Auto-save failed:", e);
+        setDirty(true);
+      }
+    }
+
+    function setDirty(isDirty) {
+      hasUnsavedChanges = isDirty;
+      const saveBtn = document.getElementById('saveIconBtn');
+      const dot = document.getElementById('saveDot');
+      const dotStatic = document.getElementById('saveDotStatic');
+
+      if (isDirty) {
+        saveBtn.className = "w-9 h-9 flex items-center justify-center text-base rounded-xl transition shadow-md bg-rose-600 hover:bg-rose-700 text-white animate-pulse";
+        dot.classList.remove('hidden');
+        dotStatic.classList.remove('hidden');
+      } else {
+        saveBtn.className = "w-9 h-9 flex items-center justify-center text-base rounded-xl transition shadow-sm bg-slate-800 hover:bg-slate-900 text-white";
+        dot.classList.add('hidden');
+        dotStatic.classList.add('hidden');
+      }
+    }
+
+    function handleSaveClick() {
+      persistChanges();
+      playTone(659.25, 0.1);
+      
+      const saveBtn = document.getElementById('saveIconBtn');
+      const origText = saveBtn.textContent;
+      saveBtn.textContent = '✓';
+      saveBtn.classList.add('bg-emerald-600');
+      setTimeout(() => {
+        saveBtn.textContent = origText;
+        saveBtn.classList.remove('bg-emerald-600');
+      }, 900);
+    }
+
+    function pushHistory() {
+      history.push(JSON.stringify(classData));
+      if (history.length > 25) history.shift();
+      updateUndoBtn();
+    }
+
+    function undo() {
+      if (history.length === 0) return;
+      classData = JSON.parse(history.pop());
+      persistChanges();
+      renderClassTabs();
+      updateTotal();
+      updateUndoBtn();
+      render();
+    }
+
+    function updateUndoBtn() {
+      const can = history.length > 0;
+      document.getElementById('undoBtn').disabled = !can;
+      document.getElementById('undoBtnMob').disabled = !can;
+    }
+
+    function updateTotal() {
+      const currentList = classData[activeClass] || [];
+      const total = currentList.reduce((sum, s) => sum + (s.stars || 0), 0);
+      document.getElementById('totalDisplay').textContent = `${total} ★`;
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      const bList = document.getElementById('btnList');
+      const bGrid = document.getElementById('btnGrid');
+      if (mode === 'list') {
+        bList.className = "px-2.5 py-1 text-xs font-bold rounded-lg transition bg-white text-slate-800 shadow-sm";
+        bGrid.className = "px-2.5 py-1 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
+      } else {
+        bGrid.className = "px-2.5 py-1 text-xs font-bold rounded-lg transition bg-white text-slate-800 shadow-sm";
+        bList.className = "px-2.5 py-1 text-xs font-bold rounded-lg transition text-slate-600 hover:text-slate-900";
+      }
+      render();
+    }
+
+    function addStar(id) {
+      const s = (classData[activeClass] || []).find(x => x.id === id);
+      if (!s) return;
+      pushHistory();
+      s.stars = (s.stars || 0) + 1;
+      playTone(880);
+      persistChanges();
+      updateTotal();
+      render();
+
+      if (s.stars > 0 && s.stars % 10 === 0) {
+        if (s.stars === 50 || s.stars === 100) {
+          triggerGrandGrandCelebration();
+        } else {
+          triggerRandomMilestoneEffect();
+        }
+        setTimeout(() => openMascotModal(s.id, true), 350);
+      }
+    }
+
+    function removeStar(id) {
+      const s = (classData[activeClass] || []).find(x => x.id === id);
+      if (!s || s.stars <= 0) return;
+      pushHistory();
+      s.stars -= 1;
+      playTone(440);
+      persistChanges();
+      updateTotal();
+      render();
+    }
+
+    function resetStudent(id) {
+      const s = (classData[activeClass] || []).find(x => x.id === id);
+      if (!s) return;
+      const ok = confirm(`Do you really want to reset stars and mascots for ${s.name} ${s.surname}?`);
+      if (!ok) return;
+      pushHistory();
+      s.stars = 0;
+      s.mascots = { slot1: null, color1: "default", slot2: null, color2: "default", slot3: null, color3: "default" };
+      persistChanges();
+      updateTotal();
+      render();
+    }
+
+    // --- GAMES MODAL INTEGRATION ---
+    let currentGame = 'numbers';
+
+    function openGamesModal() {
+      document.getElementById('gamesModal').classList.remove('hidden');
+      switchGame('numbers');
+    }
+
+    function closeGamesModal() {
+      document.getElementById('gamesModal').classList.add('hidden');
+      const iframe = document.getElementById('gameIframe');
+      iframe.srcdoc = ''; 
+    }
+
+    function switchGame(gameKey) {
+      currentGame = gameKey;
+      const tabNum = document.getElementById('tabGameNumbers');
+      const tabCol = document.getElementById('tabGameColors');
+      const iframe = document.getElementById('gameIframe');
+
+      if (gameKey === 'numbers') {
+        tabNum.className = "px-3 py-1 text-xs font-black rounded-lg transition bg-amber-400 text-slate-950 shadow-sm flex items-center gap-1.5";
+        tabCol.className = "px-3 py-1 text-xs font-black rounded-lg transition text-slate-300 hover:text-white flex items-center gap-1.5";
+        const content = document.getElementById('tmpl-numbers').innerHTML;
+        iframe.srcdoc = content;
+      } else {
+        tabCol.className = "px-3 py-1 text-xs font-black rounded-lg transition bg-amber-400 text-slate-950 shadow-sm flex items-center gap-1.5";
+        tabNum.className = "px-3 py-1 text-xs font-black rounded-lg transition text-slate-300 hover:text-white flex items-center gap-1.5";
+        const content = document.getElementById('tmpl-colors').innerHTML;
+        iframe.srcdoc = content;
+      }
+    }
+
+    // --- WHEEL & RANDOM PICKER ---
+    let isEliminationMode = false;
+    let eliminatedStudents = {};
+    let currentWheelRotation = 0;
+    let isSpinning = false;
+    let lastSegmentIndex = -1;
+
+    const WHEEL_PALETTE = [
+      "#4f46e5", "#0ea5e9", "#10b981", "#f59e0b",
+      "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6",
+      "#f97316", "#6366f1", "#06b6d4", "#84cc16"
+    ];
+
+    function toggleEliminationMode() {
+      if (isSpinning) return;
+      isEliminationMode = !isEliminationMode;
+      const btn = document.getElementById('toggleEliminationBtn');
+      const dot = document.getElementById('toggleEliminationDot');
+      const sidebar = document.getElementById('eliminatedSidebar');
+
+      if (isEliminationMode) {
+        btn.classList.replace('bg-slate-300', 'bg-indigo-600');
+        dot.classList.replace('translate-x-1', 'translate-x-6');
+        sidebar.classList.remove('hidden');
+      } else {
+        btn.classList.replace('bg-indigo-600', 'bg-slate-300');
+        dot.classList.replace('translate-x-6', 'translate-x-1');
+        sidebar.classList.add('hidden');
+      }
+      updateEliminatedListUI();
+      drawWheel();
+    }
+
+    function updateEliminatedListUI() {
+      const container = document.getElementById('eliminatedListContainer');
+      const countInfo = document.getElementById('eliminatedCountInfo');
+      const list = eliminatedStudents[activeClass] || [];
+      const fullList = classData[activeClass] || [];
+      
+      document.getElementById('poolStatusText').textContent = isEliminationMode 
+        ? `Remaining: ${fullList.length - list.length}/${fullList.length}` 
+        : `Active Class: ${activeClass || 'None'}`;
+
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        container.innerHTML = `<p class="text-[11px] text-slate-400 italic text-center py-8">No students picked yet</p>`;
+      } else {
+        list.forEach((st, idx) => {
+          const item = document.createElement('div');
+          item.className = "flex items-center justify-between bg-white px-2 py-1.5 rounded-lg border border-slate-200 text-xs shadow-2xs";
+          item.innerHTML = `
+            <span class="truncate font-bold text-slate-700" title="${st.name} ${st.surname}">${idx + 1}. ${st.name}</span>
+            <button onclick="restoreStudentToWheel(${st.id})" title="Return to Wheel" class="text-slate-400 hover:text-rose-500 font-black ml-1.5 p-0.5">✕</button>
+          `;
+          container.appendChild(item);
+        });
+      }
+
+      if (countInfo) {
+        countInfo.textContent = `${list.length} Students Picked`;
+      }
+    }
+
+    function restoreStudentToWheel(studentId) {
+      if (isSpinning) return;
+      eliminatedStudents[activeClass] = (eliminatedStudents[activeClass] || []).filter(s => s.id !== studentId);
+      updateEliminatedListUI();
+      drawWheel();
+    }
+
+    function clearEliminatedList() {
+      if (isSpinning) return;
+      eliminatedStudents[activeClass] = [];
+      updateEliminatedListUI();
+      drawWheel();
+      document.getElementById('pickerNameDisplay').textContent = "All students returned to the wheel!";
+    }
+
+    function getWheelStudents() {
+      const fullList = classData[activeClass] || [];
+      if (!isEliminationMode) return fullList;
+
+      const eliminatedIds = (eliminatedStudents[activeClass] || []).map(s => s.id);
+      return fullList.filter(s => !eliminatedIds.includes(s.id));
+    }
+
+    function drawWheel() {
+      const canvas = document.getElementById('wheelCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      const radius = width / 2;
+      const students = getWheelStudents();
+
+      ctx.clearRect(0, 0, width, height);
+
+      if (students.length === 0) {
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.fillStyle = "#94a3b8";
+        ctx.beginPath();
+        ctx.arc(0, 0, radius - 4, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 13px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("All students picked!", 0, 5);
+        ctx.restore();
+        return;
+      }
+
+      const sliceAngle = (2 * Math.PI) / students.length;
+
+      ctx.save();
+      ctx.translate(radius, radius);
+      ctx.rotate(currentWheelRotation);
+
+      for (let i = 0; i < students.length; i++) {
+        const angle = i * sliceAngle;
+        ctx.beginPath();
+        ctx.fillStyle = WHEEL_PALETTE[i % WHEEL_PALETTE.length];
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius - 4, angle, angle + sliceAngle);
+        ctx.lineTo(0, 0);
+        ctx.fill();
+
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.rotate(angle + sliceAngle / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 11px sans-serif";
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 3;
+
+        let displayName = students[i].name;
+        if (displayName.length > 13) displayName = displayName.substring(0, 12) + '…';
+        ctx.fillText(displayName, radius - 16, 4);
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    function openPickerModal() {
+      updateEliminatedListUI();
+      drawWheel();
+      document.getElementById('pickerNameDisplay').textContent = "Ready to Spin!";
+      document.getElementById('pickerModal').classList.remove('hidden');
+    }
+
+    function closePickerModal() {
+      if (isSpinning) return;
+      document.getElementById('pickerModal').classList.add('hidden');
+    }
+
+    function spinAnimatedWheel() {
+      if (isSpinning) return;
+      const students = getWheelStudents();
+      if (students.length === 0) {
+        document.getElementById('pickerNameDisplay').textContent = "Click 'Reset' in the sidebar to refill the wheel!";
+        return;
+      }
+
+      isSpinning = true;
+      const spinBtn = document.getElementById('spinBtn');
+      spinBtn.disabled = true;
+      spinBtn.classList.add('opacity-50');
+
+      const chosenIndex = Math.floor(Math.random() * students.length);
+      const chosenStudent = students[chosenIndex];
+
+      const sliceAngle = (2 * Math.PI) / students.length;
+      const targetSegmentCenter = chosenIndex * sliceAngle + (sliceAngle / 2);
+      const extraSpins = (5 + Math.floor(Math.random() * 3)) * (2 * Math.PI);
+      
+      const currentMod = currentWheelRotation % (2 * Math.PI);
+      let targetRotation = (1.5 * Math.PI) - targetSegmentCenter;
+      while (targetRotation < currentMod) targetRotation += 2 * Math.PI;
+      targetRotation += extraSpins;
+
+      const startRotation = currentWheelRotation;
+      const distance = targetRotation - startRotation;
+      const duration = 4000;
+      const startTime = performance.now();
+
+      lastSegmentIndex = -1;
+
+      function easeOutCubic(t) {
+        return 1 - Math.pow(1 - t, 3);
+      }
+
+      function animate(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = easeOutCubic(progress);
+
+        currentWheelRotation = startRotation + distance * eased;
+        drawWheel();
+
+        const activeNormalized = ( (1.5 * Math.PI - (currentWheelRotation % (2 * Math.PI))) + 2 * Math.PI ) % (2 * Math.PI);
+        const currentSegment = Math.floor(activeNormalized / sliceAngle) % students.length;
+        if (currentSegment !== lastSegmentIndex) {
+          playTone(600 + (currentSegment * 16), 0.03);
+          lastSegmentIndex = currentSegment;
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          isSpinning = false;
+          spinBtn.disabled = false;
+          spinBtn.classList.remove('opacity-50');
+
+          if (isEliminationMode) {
+            if (!eliminatedStudents[activeClass]) eliminatedStudents[activeClass] = [];
+            eliminatedStudents[activeClass].push(chosenStudent);
+            updateEliminatedListUI();
+          }
+
+          playLevelUpMelody();
+          if (typeof confetti === 'function') {
+            confetti({ particleCount: 50, spread: 70, origin: { y: 0.7 } });
+          }
+
+          document.getElementById('pickerNameDisplay').innerHTML = `🎯 ${chosenStudent.name} ${chosenStudent.surname}`;
+          drawWheel();
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // --- MASCOT CUSTOMIZATION LOGIC ---
+    function openMascotModal(studentId, isCheckpointMilestone = false) {
+      modalStudentId = studentId;
+      const s = (classData[activeClass] || []).find(x => x.id === studentId);
+      if (!s) return;
+
+      if (!s.mascots) {
+        s.mascots = { slot1: null, color1: "default", slot2: null, color2: "default", slot3: null, color3: "default" };
+      }
+
+      tempMascots = JSON.parse(JSON.stringify(s.mascots));
+      
+      if (s.stars >= 100 && !tempMascots.slot3) {
+        currentActiveSlot = 3;
+      } else if (s.stars >= 50 && !tempMascots.slot2) {
+        currentActiveSlot = 2;
+      } else {
+        currentActiveSlot = 1;
+      }
+
+      const modalTitle = document.getElementById('modalStudentName');
+      const modalSub = document.getElementById('modalSubDesc');
+
+      if (isCheckpointMilestone) {
+        modalTitle.textContent = `🎉 Congratulations ${s.name}! (${s.stars} ★)`;
+        if (s.stars === 50) {
+          modalSub.textContent = "🏆 50 Stars Milestone! Your mascot reached max size & 2nd Mascot unlocked!";
+        } else if (s.stars === 100) {
+          modalSub.textContent = "👑 Legendary 100 Stars! 3rd Mascot unlocked!";
+        } else {
+          modalSub.textContent = `⭐ ${s.stars} Stars Checkpoint! New glowing auras unlocked.`;
+        }
+      } else {
+        modalTitle.textContent = `${s.name} (${s.stars} ★) - Mascot Settings`;
+        modalSub.textContent = "Customize your mascots and visual aura styles.";
+      }
+
+      const slotBox = document.getElementById('slotSelectorContainer');
+      if (s.stars >= 50) {
+        slotBox.classList.remove('hidden');
+        document.getElementById('slotBtn2').classList.remove('hidden');
+        if (s.stars >= 100) {
+          document.getElementById('slotBtn3').classList.remove('hidden');
+        } else {
+          document.getElementById('slotBtn3').classList.add('hidden');
+        }
+      } else {
+        slotBox.classList.add('hidden');
+      }
+
+      updateSlotButtons();
+      renderModalOptions(s.stars);
+      document.getElementById('mascotModal').classList.remove('hidden');
+    }
+
+    function switchModalSlot(slotNum) {
+      currentActiveSlot = slotNum;
+      updateSlotButtons();
+      const s = (classData[activeClass] || []).find(x => x.id === modalStudentId);
+      if (s) renderModalOptions(s.stars);
+    }
+
+    function updateSlotButtons() {
+      for (let i = 1; i <= 3; i++) {
+        const btn = document.getElementById(`slotBtn${i}`);
+        if (!btn) continue;
+        if (i === currentActiveSlot) {
+          btn.className = "flex-1 py-1.5 text-xs font-black rounded-xl transition bg-white text-amber-700 shadow-sm border border-amber-200";
+        } else {
+          btn.className = "flex-1 py-1.5 text-xs font-bold rounded-xl transition text-slate-500 hover:text-slate-800";
+        }
+      }
+      document.getElementById('currentSlotLabel').textContent = `Configuring Mascot #${currentActiveSlot}`;
+    }
+
+    function renderModalOptions(studentStars) {
+      const activeSlotKey = `slot${currentActiveSlot}`;
+      const activeColorKey = `color${currentActiveSlot}`;
+
+      const mascotBox = document.getElementById('mascotOptions');
+      mascotBox.innerHTML = '';
+      MASCOTS.forEach(m => {
+        const isSel = tempMascots[activeSlotKey] === m.key;
+        const b = document.createElement('button');
+        b.className = `p-2 rounded-xl border-2 flex flex-col items-center justify-center transition ${
+          isSel ? 'border-amber-500 bg-amber-50 shadow-sm' : 'border-slate-200 hover:border-slate-300'
+        }`;
+        b.onclick = () => {
+          tempMascots[activeSlotKey] = m.key;
+          renderModalOptions(studentStars);
+        };
+        b.innerHTML = `<span class="text-2xl">${m.emoji}</span><span class="text-[10px] font-bold text-slate-700 mt-1">${m.name}</span>`;
+        mascotBox.appendChild(b);
+      });
+
+      const colorBox = document.getElementById('colorOptions');
+      colorBox.innerHTML = '';
+      MASCOT_COLORS.forEach(c => {
+        const isUnlocked = studentStars >= c.minStars;
+        const isSel = (tempMascots[activeColorKey] || 'default') === c.id;
+
+        const b = document.createElement('button');
+        b.className = `p-2 rounded-xl border-2 flex flex-col items-center justify-center relative transition ${
+          !isUnlocked ? 'opacity-40 cursor-not-allowed border-slate-200 bg-slate-50' : 
+          (isSel ? 'border-amber-500 bg-amber-50 shadow-sm' : 'border-slate-200 hover:border-amber-300')
+        }`;
+
+        if (isUnlocked) {
+          b.onclick = () => {
+            tempMascots[activeColorKey] = c.id;
+            renderModalOptions(studentStars);
+          };
+        }
+
+        b.innerHTML = `
+          <div class="w-6 h-6 rounded-full ${c.dotBg} border border-white shadow-sm flex items-center justify-center">
+            ${!isUnlocked ? '<span class="text-[9px] text-white">🔒</span>' : ''}
+          </div>
+          <span class="text-[10px] font-bold text-slate-700 mt-1 leading-tight text-center">${c.name}</span>
+          ${!isUnlocked ? `<span class="text-[8px] font-bold text-slate-400">${c.minStars}★</span>` : ''}
+        `;
+        colorBox.appendChild(b);
+      });
+    }
+
+    function saveMascotChoice() {
+      if (!modalStudentId) return;
+      const s = (classData[activeClass] || []).find(x => x.id === modalStudentId);
+      if (s) {
+        pushHistory();
+        s.mascots = JSON.parse(JSON.stringify(tempMascots));
+        persistChanges();
+        render();
+        if (typeof confetti === 'function') confetti({ particleCount: 30, spread: 50 });
+      }
+      closeMascotModal();
+    }
+
+    function closeMascotModal() {
+      document.getElementById('mascotModal').classList.add('hidden');
+      modalStudentId = null;
+    }
+
+    // --- BADGES & ACHIEVEMENTS ---
+    function getStudentBadge(stars) {
+      if (stars < 20) return { title: "Star Scout 🌟", classes: "bg-amber-50 text-amber-700 border-amber-200" };
+      if (stars < 40) return { title: "Word Wizard 🪄", classes: "bg-sky-50 text-sky-700 border-sky-200" };
+      if (stars < 60) return { title: "Super Star ⭐", classes: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+      if (stars < 80) return { title: "Master Spark 🔮", classes: "bg-purple-50 text-purple-700 border-purple-200" };
+      if (stars < 100) return { title: "Champion 🏆", classes: "bg-rose-50 text-rose-700 border-rose-200 font-extrabold" };
+      
+      return { title: `Class Legend 👑`, classes: "bg-gradient-to-r from-amber-100 to-rose-100 text-rose-900 border-amber-300 font-black shadow-xs" };
+    }
+
+    function getStarColorClass(index) {
+      if (index <= 10) return "text-amber-400";
+      if (index <= 20) return "text-sky-500";
+      if (index <= 30) return "text-emerald-500";
+      if (index <= 40) return "text-rose-500";
+      if (index <= 50) return "text-purple-500";
+      if (index <= 60) return "text-orange-500";
+      return "text-cyan-400 drop-shadow-[0_0_4px_cyan]";
+    }
+
+    function renderStars(count) {
+      if (!count || count <= 0) return `<span class="text-xs font-medium text-slate-400 italic">No stars yet</span>`;
+      let html = '';
+      for (let i = 1; i <= count; i++) {
+        html += `<span class="star-pop text-base leading-none ${getStarColorClass(i)} filter drop-shadow-sm">★</span>`;
+      }
+      return html;
+    }
+
+    function getMascotScale(stars) {
+      const effectiveStars = Math.min(50, Math.max(10, stars));
+      const bonus = (effectiveStars - 10) * 0.015;
+      return (1.25 + bonus).toFixed(2);
+    }
+
+    function renderStudentMascots(st) {
+      if (st.stars < 10) return '';
+      if (!st.mascots) {
+        st.mascots = { slot1: null, color1: "default", slot2: null, color2: "default", slot3: null, color3: "default" };
+      }
+
+      const mascotSize = getMascotScale(st.stars);
+      let itemsHtml = '';
+
+      const m1 = MASCOTS.find(m => m.key === st.mascots.slot1);
+      const c1 = MASCOT_COLORS.find(c => c.id === st.mascots.color1) || MASCOT_COLORS[0];
+      if (m1) {
+        itemsHtml += `<span class="mascot-unit cursor-pointer leading-none select-none inline-block" onclick="openMascotModal(${st.id})" title="${m1.name} (${c1.name})" style="font-size: ${mascotSize}rem; filter: ${c1.filter};">${m1.emoji}</span>`;
+      } else {
+        itemsHtml += `<button onclick="openMascotModal(${st.id})" class="px-2 py-1 bg-amber-500 text-white rounded-lg text-[10px] font-black animate-bounce">1st Mascot</button>`;
+      }
+
+      if (st.stars >= 50) {
+        const m2 = MASCOTS.find(m => m.key === st.mascots.slot2);
+        const c2 = MASCOT_COLORS.find(c => c.id === st.mascots.color2) || MASCOT_COLORS[0];
+        if (m2) {
+          itemsHtml += `<span class="mascot-unit cursor-pointer leading-none select-none inline-block ml-1" onclick="openMascotModal(${st.id})" title="2nd Mascot: ${m2.name} (${c2.name})" style="font-size: ${mascotSize}rem; filter: ${c2.filter};">${m2.emoji}</span>`;
+        } else {
+          itemsHtml += `<button onclick="openMascotModal(${st.id})" class="ml-1 px-2 py-1 bg-indigo-500 text-white rounded-lg text-[10px] font-black animate-bounce">2nd Mascot</button>`;
+        }
+      }
+
+      if (st.stars >= 100) {
+        const m3 = MASCOTS.find(m => m.key === st.mascots.slot3);
+        const c3 = MASCOT_COLORS.find(c => c.id === st.mascots.color3) || MASCOT_COLORS[0];
+        if (m3) {
+          itemsHtml += `<span class="mascot-unit cursor-pointer leading-none select-none inline-block ml-1" onclick="openMascotModal(${st.id})" title="3rd Mascot: ${m3.name} (${c3.name})" style="font-size: ${mascotSize}rem; filter: ${c3.filter};">${m3.emoji}</span>`;
+        } else {
+          itemsHtml += `<button onclick="openMascotModal(${st.id})" class="ml-1 px-2 py-1 bg-rose-500 text-white rounded-lg text-[10px] font-black animate-bounce">3rd Mascot</button>`;
+        }
+      }
+
+      return `
+        <div class="flex items-center justify-center p-1 bg-amber-50/50 border border-amber-200 rounded-xl gap-1" style="min-width: 52px; min-height: 48px;">
+          ${itemsHtml}
+        </div>
+      `;
+    }
+
+    function render() {
+      const container = document.getElementById('contentArea');
+      const q = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+      const currentList = classData[activeClass] || [];
+
+      if (!activeClass || Object.keys(classData).length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-10 text-center border border-slate-200">
+            <span class="text-4xl">🏫</span>
+            <p class="mt-3 text-slate-600 font-bold text-base">No classes created yet!</p>
+            <p class="text-slate-400 text-xs mt-1">Click the "+ Add / Manage" button above to get started.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const filtered = currentList.filter(s => {
+        const full = `${s.name} ${s.surname}`.toLowerCase();
+        return full.includes(q);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-10 text-center border border-slate-200">
+            <span class="text-3xl">🔍</span>
+            <p class="mt-2 text-slate-500 font-semibold text-sm">No students found.</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (currentMode === 'list') {
+        let html = `<div class="bg-white rounded-2xl shadow-sm border border-slate-200 divide-y divide-slate-100 overflow-hidden">`;
+        filtered.forEach((st, idx) => {
+          const badge = getStudentBadge(st.stars);
+
+          html += `
+            <div class="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-amber-50/40 transition">
+              
+              <div class="flex items-center gap-2.5 sm:w-1/4 min-w-[210px]">
+                <span class="text-xs font-bold text-slate-400 w-5 text-right">${idx + 1}.</span>
+                <div>
+                  <h3 class="font-bold text-slate-900 text-sm leading-snug">${st.name}</h3>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="text-[11px] font-semibold text-slate-500">${st.surname}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${badge.classes}">
+                      ${badge.title}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="min-w-[70px] shrink-0 flex items-center justify-center">
+                ${renderStudentMascots(st)}
+              </div>
+
+              <div class="flex-1 bg-slate-50 border border-slate-100 rounded-xl p-2.5 min-h-[42px] flex flex-wrap items-center gap-1">
+                ${renderStars(st.stars)}
+              </div>
+
+              <div class="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                <div class="min-w-[50px] text-right font-black text-amber-600 text-base">
+                  ${st.stars} ★
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                  <button 
+                    onclick="addStar(${st.id})" 
+                    class="h-9 px-3.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-extrabold text-sm rounded-xl shadow-sm transition flex items-center justify-center"
+                    title="+1 Star"
+                  >
+                    +1
+                  </button>
+
+                  <button 
+                    onclick="removeStar(${st.id})" 
+                    class="h-9 w-9 bg-slate-200 hover:bg-rose-100 hover:text-rose-600 text-slate-700 active:scale-95 font-black text-sm rounded-xl transition flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none"
+                    ${st.stars === 0 ? 'disabled' : ''}
+                    title="-1 Star"
+                  >
+                    -
+                  </button>
+
+                  <button 
+                    onclick="resetStudent(${st.id})" 
+                    class="h-9 px-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 text-xs font-semibold rounded-xl transition ml-1"
+                    title="Reset this student"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          `;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+        return;
+      }
+
+      let html = `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">`;
+      filtered.forEach((st) => {
+        const badge = getStudentBadge(st.stars);
+
+        html += `
+          <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-2 mb-3">
+                <div>
+                  <h3 class="font-bold text-slate-800 text-sm leading-snug">${st.name}</h3>
+                  <p class="text-xs font-semibold text-slate-500">${st.surname}</p>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-bold border mt-1 ${badge.classes}">
+                    ${badge.title}
+                  </span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="bg-amber-100 text-amber-800 text-xs font-black px-2 py-1 rounded-lg">
+                    ${st.stars} ★
+                  </span>
+                </div>
+              </div>
+
+              <div class="mb-2">
+                ${renderStudentMascots(st)}
+              </div>
+
+              <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 min-h-[85px] max-h-[130px] overflow-y-auto flex flex-wrap content-start items-center gap-1 mb-4">
+                ${renderStars(st.stars)}
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <button 
+                  onclick="addStar(${st.id})" 
+                  class="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-extrabold text-sm rounded-xl shadow-sm transition"
+                >
+                  +1 Star
+                </button>
+                <button 
+                  onclick="removeStar(${st.id})" 
+                  class="w-10 py-2 bg-slate-200 hover:bg-rose-100 hover:text-rose-600 text-slate-700 active:scale-95 font-black text-sm rounded-xl transition flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none"
+                  ${st.stars === 0 ? 'disabled' : ''}
+                >
+                  -
+                </button>
+              </div>
+
+              <button 
+                onclick="resetStudent(${st.id})" 
+                class="w-full py-1 text-slate-400 hover:text-rose-600 text-xs font-medium rounded transition text-center hover:bg-rose-50"
+              >
+                Reset Student
+              </button>
+            </div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderClassTabs();
+      updateTotal();
+      render();
+    });
+  </script>
+</body>
+</html>
