@@ -27,7 +27,7 @@ jobs:
           mkdir -p www
           cp index.html www/
           npm init -y
-          npm install --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
+          npm install --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android sharp
           npx cap init "Sınıf Cepte" "com.sinifcepte.app" --web-dir www
           npx cap add android
 
@@ -57,21 +57,55 @@ jobs:
           }
           EOF
 
-      - name: Generate App Icons
+      - name: Generate and Override App Icons
         run: |
-          mkdir -p assets
-          SRC_ICON=""
-          if [ -f resources/icon.png ]; then SRC_ICON="resources/icon.png"; fi
-          if [ -f resources/icon.PNG ]; then SRC_ICON="resources/icon.PNG"; fi
-          if [ -f icon.png ]; then SRC_ICON="icon.png"; fi
+          node -e '
+          const fs = require("fs");
+          const path = require("path");
+          const sharp = require("sharp");
 
-          if [ -n "$SRC_ICON" ]; then
-            echo "İkon bulundu: $SRC_ICON"
-            cp "$SRC_ICON" assets/logo.png
-            cp "$SRC_ICON" assets/icon-only.png
-            cp "$SRC_ICON" assets/icon-foreground.png
-            npx capacitor-assets generate --android --iconOnly || true
-          fi
+          const possiblePaths = [
+            "resources/icon.png",
+            "resources/icon.PNG",
+            "icon.png",
+            "icon.PNG"
+          ];
+
+          let iconPath = possiblePaths.find(p => fs.existsSync(p));
+
+          if (!iconPath) {
+            console.error("HATA: İkon dosyası bulunamadı! Lütfen resources/icon.png yüklendiğinden emin olun.");
+            process.exit(1);
+          }
+
+          console.log("Kullanılan ikon:", iconPath);
+
+          const resDir = path.join("android", "app", "src", "main", "res");
+          const sizes = {
+            "mipmap-mdpi": 48,
+            "mipmap-hdpi": 72,
+            "mipmap-xhdpi": 96,
+            "mipmap-xxhdpi": 144,
+            "mipmap-xxxhdpi": 192
+          };
+
+          async function processIcons() {
+            for (const [folder, size] of Object.entries(sizes)) {
+              const targetFolder = path.join(resDir, folder);
+              if (fs.existsSync(targetFolder)) {
+                await sharp(iconPath).resize(size, size).toFile(path.join(targetFolder, "ic_launcher.png"));
+                await sharp(iconPath).resize(size, size).toFile(path.join(targetFolder, "ic_launcher_round.png"));
+                await sharp(iconPath).resize(size, size).toFile(path.join(targetFolder, "ic_launcher_foreground.png"));
+              }
+            }
+            console.log("Tüm Android ikonları başarıyla yenilendi!");
+          }
+
+          processIcons().catch(err => {
+            console.error(err);
+            process.exit(1);
+          });
+          '
 
       - name: Sync Capacitor
         run: |
