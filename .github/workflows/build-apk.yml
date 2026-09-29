@@ -27,11 +27,15 @@ jobs:
           mkdir -p www
           cp index.html www/
           npm init -y
-          npm install --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech
+          npm install --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
           npx cap init "Sınıf Cepte" "com.sinifcepte.app" --web-dir www
           npx cap add android
 
-      - name: Prepare & Generate App Icons
+      - name: Fix Kotlin Duplicate Classes
+        run: |
+          echo "configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' } }" >> android/app/build.gradle
+
+      - name: Generate App Icons
         run: |
           mkdir -p assets
           SRC_ICON=""
@@ -41,14 +45,12 @@ jobs:
           if [ -f icon.PNG ]; then SRC_ICON="icon.PNG"; fi
 
           if [ -n "$SRC_ICON" ]; then
-            echo "İkon dosyası bulundu: $SRC_ICON"
+            echo "İkon bulundu: $SRC_ICON"
             convert "$SRC_ICON" -resize 1024x1024! assets/logo.png || cp "$SRC_ICON" assets/logo.png
             cp assets/logo.png assets/icon-only.png
             cp assets/logo.png assets/icon-foreground.png
             convert -size 1024x1024 xc:white assets/icon-background.png || true
-            npx @capacitor/assets generate --android --iconOnly || true
-          else
-            echo "Özel ikon bulunamadı, varsayılan simgeler kullanılıyor."
+            npx capacitor-assets generate --android --iconOnly || true
           fi
 
       - name: Sync Capacitor
