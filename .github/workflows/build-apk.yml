@@ -27,30 +27,52 @@ jobs:
           mkdir -p www
           cp index.html www/
           npm init -y
-          npm install --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
+          npm install --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android
           npx cap init "Sınıf Cepte" "com.sinifcepte.app" --web-dir www
           npx cap add android
 
       - name: Fix Kotlin Duplicate Classes
         run: |
-          echo "configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' } }" >> android/app/build.gradle
+          cat << 'EOF' >> android/app/build.gradle
 
-      - name: Generate App Icons
+          configurations.all {
+              resolutionStrategy.capabilitiesResolution.withCapability("org.jetbrains.kotlin:kotlin-stdlib") {
+                  selectHighestVersion()
+              }
+              resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+                  if (details.requested.group == 'org.jetbrains.kotlin' && (details.requested.name == 'kotlin-stdlib-jdk7' || details.requested.name == 'kotlin-stdlib-jdk8')) {
+                      details.useTarget("org.jetbrains.kotlin:kotlin-stdlib:1.8.22")
+                  }
+              }
+          }
+          dependencies {
+              modules {
+                  module("org.jetbrains.kotlin:kotlin-stdlib-jdk7") {
+                      replacedBy("org.jetbrains.kotlin:kotlin-stdlib", "Use single kotlin-stdlib")
+                  }
+                  module("org.jetbrains.kotlin:kotlin-stdlib-jdk8") {
+                      replacedBy("org.jetbrains.kotlin:kotlin-stdlib", "Use single kotlin-stdlib")
+                  }
+              }
+          }
+          EOF
+
+      - name: Prepare & Generate App Icons
         run: |
-          mkdir -p assets
           SRC_ICON=""
           if [ -f resources/icon.png ]; then SRC_ICON="resources/icon.png"; fi
           if [ -f resources/icon.PNG ]; then SRC_ICON="resources/icon.PNG"; fi
           if [ -f icon.png ]; then SRC_ICON="icon.png"; fi
-          if [ -f icon.PNG ]; then SRC_ICON="icon.PNG"; fi
 
           if [ -n "$SRC_ICON" ]; then
             echo "İkon bulundu: $SRC_ICON"
-            convert "$SRC_ICON" -resize 1024x1024! assets/logo.png || cp "$SRC_ICON" assets/logo.png
-            cp assets/logo.png assets/icon-only.png
-            cp assets/logo.png assets/icon-foreground.png
-            convert -size 1024x1024 xc:white assets/icon-background.png || true
-            npx capacitor-assets generate --android --iconOnly || true
+            convert "$SRC_ICON" -resize 1024x1024! /tmp/icon1024.png
+            # Android mipmap klasörlerine doğrudan kopyala
+            for dir in android/app/src/main/res/mipmap-*; do
+              convert /tmp/icon1024.png -resize 192x192 "$dir/ic_launcher.png" 2>/dev/null || true
+              convert /tmp/icon1024.png -resize 192x192 "$dir/ic_launcher_round.png" 2>/dev/null || true
+              convert /tmp/icon1024.png -resize 192x192 "$dir/ic_launcher_foreground.png" 2>/dev/null || true
+            done
           fi
 
       - name: Sync Capacitor
@@ -61,7 +83,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug bundleDebug
+          ./gradlew assembleDebug bundleDebug --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
