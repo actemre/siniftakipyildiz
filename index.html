@@ -510,7 +510,7 @@
           <div class="mt-6 flex flex-wrap items-center justify-center gap-3 w-full">
             <button id="rollBtn" class="bouncy-hover bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-indigo-950 font-black text-lg sm:text-xl px-8 py-4 rounded-2xl shadow-lg border-b-4 border-amber-600 flex items-center gap-3"><span class="text-2xl">🎲</span><span>ROLL NUMBER!</span></button>
             <button id="pronounceBtn" class="bouncy-hover bg-indigo-600 hover:bg-indigo-500 text-white font-black text-base sm:text-lg px-6 py-4 rounded-2xl shadow-md border-b-4 border-indigo-800 flex items-center gap-2"><span id="speakIcon" class="text-xl">🔊</span><span>Say It Again</span></button>
-            <button id="toggleWordHideBtn" class="bouncy-hover bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm sm:text-base px-4 py-4 rounded-2xl border-2 border-slate-300 flex items-center gap-1.5"><span id="eyeIcon">👁️️</span><span id="eyeText">Hide Spelling</span></button>
+            <button id="toggleWordHideBtn" class="bouncy-hover bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm sm:text-base px-4 py-4 rounded-2xl border-2 border-slate-300 flex items-center gap-1.5"><span id="eyeIcon">👁</span><span id="eyeText">Hide Spelling</span></button>
           </div>
         </div>
         <div class="lg:col-span-4 flex flex-col gap-4">
@@ -947,40 +947,48 @@
   </template>
 
   <script>
-    // --- ANDROID WEBVIEW İÇİN GARANTİLİ ÇALIŞAN SES MOTORU ---
-    let currentAudio = null;
-
-    window.speakGlobal = function(text, rate = 0.8) {
+    // --- ANDROID YEREL VE BROWSER SES MOTORU ---
+    window.speakGlobal = async function(text, rate = 0.8) {
       if (!text) return;
 
-      try {
-        if (currentAudio) {
-          currentAudio.pause();
-          currentAudio.currentTime = 0;
+      // 1. ÖNCELİK: Android Yerel Capacitor TTS Eklentisi (Sistemin kendi TTS motoru)
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+        try {
+          await window.Capacitor.Plugins.TextToSpeech.stop();
+          await window.Capacitor.Plugins.TextToSpeech.speak({
+            text: text,
+            lang: 'en-US',
+            rate: rate || 0.8,
+            pitch: 1.0,
+            volume: 1.0,
+            category: 'ambient'
+          });
+          return;
+        } catch (e) {
+          console.warn("Capacitor TTS Plugin Hatası:", e);
         }
+      }
 
-        if ('speechSynthesis' in window && window.speechSynthesis.getVoices().length > 0) {
+      // 2. ÖNCELİK: Web Speech API (Tarayıcıda / Masaüstünde test ederken)
+      try {
+        if ('speechSynthesis' in window) {
           window.speechSynthesis.cancel();
           const utter = new SpeechSynthesisUtterance(text);
           utter.lang = 'en-US';
-          utter.rate = rate;
-          utter.pitch = 1.0;
+          utter.rate = rate || 0.8;
+          utter.pitch = 1.05;
           window.speechSynthesis.speak(utter);
           return;
         }
       } catch (e) {}
 
+      // 3. ÖNCELİK: Yedek Çevrimdışı/Çevrimiçi Ses Akışı
       try {
-        const encodedText = encodeURIComponent(text);
-        const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodedText}`;
-        currentAudio = new Audio(audioUrl);
-        currentAudio.playbackRate = rate || 0.85;
-        currentAudio.play().catch(err => {
-          console.warn("Audio play blocked:", err);
-        });
-      } catch (err) {
-        console.error("Audio error:", err);
-      }
+        const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodeURIComponent(text)}`;
+        const a = new Audio(audioUrl);
+        a.playbackRate = rate;
+        a.play().catch(e => {});
+      } catch (err) {}
     };
 
     const MASCOTS = [
