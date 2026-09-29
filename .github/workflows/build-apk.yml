@@ -27,7 +27,7 @@ jobs:
           mkdir -p www
           cp index.html www/
           npm init -y
-          npm install --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android
+          npm install --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
           npx cap init "Sınıf Cepte" "com.sinifcepte.app" --web-dir www
           npx cap add android
 
@@ -57,8 +57,9 @@ jobs:
           }
           EOF
 
-      - name: Prepare & Generate App Icons
+      - name: Generate App Icons
         run: |
+          mkdir -p assets
           SRC_ICON=""
           if [ -f resources/icon.png ]; then SRC_ICON="resources/icon.png"; fi
           if [ -f resources/icon.PNG ]; then SRC_ICON="resources/icon.PNG"; fi
@@ -66,13 +67,10 @@ jobs:
 
           if [ -n "$SRC_ICON" ]; then
             echo "İkon bulundu: $SRC_ICON"
-            convert "$SRC_ICON" -resize 1024x1024! /tmp/icon1024.png
-            # Android mipmap klasörlerine doğrudan kopyala
-            for dir in android/app/src/main/res/mipmap-*; do
-              convert /tmp/icon1024.png -resize 192x192 "$dir/ic_launcher.png" 2>/dev/null || true
-              convert /tmp/icon1024.png -resize 192x192 "$dir/ic_launcher_round.png" 2>/dev/null || true
-              convert /tmp/icon1024.png -resize 192x192 "$dir/ic_launcher_foreground.png" 2>/dev/null || true
-            done
+            cp "$SRC_ICON" assets/logo.png
+            cp "$SRC_ICON" assets/icon-only.png
+            cp "$SRC_ICON" assets/icon-foreground.png
+            npx capacitor-assets generate --android --iconOnly || true
           fi
 
       - name: Sync Capacitor
