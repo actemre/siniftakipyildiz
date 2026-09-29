@@ -202,7 +202,7 @@
             id="newClassStudentsInput" 
             rows="6" 
             placeholder="John Doe&#10;Emily Smith&#10;Michael Brown&#10;Sarah Connor"
-            class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium font-mono"
+            class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 font-semibold font-mono"
           ></textarea>
         </div>
 
@@ -510,7 +510,7 @@
           <div class="mt-6 flex flex-wrap items-center justify-center gap-3 w-full">
             <button id="rollBtn" class="bouncy-hover bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-indigo-950 font-black text-lg sm:text-xl px-8 py-4 rounded-2xl shadow-lg border-b-4 border-amber-600 flex items-center gap-3"><span class="text-2xl">🎲</span><span>ROLL NUMBER!</span></button>
             <button id="pronounceBtn" class="bouncy-hover bg-indigo-600 hover:bg-indigo-500 text-white font-black text-base sm:text-lg px-6 py-4 rounded-2xl shadow-md border-b-4 border-indigo-800 flex items-center gap-2"><span id="speakIcon" class="text-xl">🔊</span><span>Say It Again</span></button>
-            <button id="toggleWordHideBtn" class="bouncy-hover bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm sm:text-base px-4 py-4 rounded-2xl border-2 border-slate-300 flex items-center gap-1.5"><span id="eyeIcon">👁️</span><span id="eyeText">Hide Spelling</span></button>
+            <button id="toggleWordHideBtn" class="bouncy-hover bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm sm:text-base px-4 py-4 rounded-2xl border-2 border-slate-300 flex items-center gap-1.5"><span id="eyeIcon">👁️️</span><span id="eyeText">Hide Spelling</span></button>
           </div>
         </div>
         <div class="lg:col-span-4 flex flex-col gap-4">
@@ -647,13 +647,11 @@
 
       if (window.parent && typeof window.parent.speakGlobal === 'function') {
         window.parent.speakGlobal(text, speed);
-      } else if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.lang = 'en-US';
-        utter.rate = speed;
-        utter.pitch = 1.05;
-        window.speechSynthesis.speak(utter);
+      } else {
+        const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodeURIComponent(text)}`;
+        const a = new Audio(audioUrl);
+        a.playbackRate = speed;
+        a.play().catch(e => {});
       }
     }
 
@@ -878,14 +876,12 @@
       if (window.parent && typeof window.parent.speakGlobal === 'function') {
         window.parent.speakGlobal(txt, 0.82);
         if (callback) setTimeout(callback, 1200);
-      } else if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(txt);
-        u.lang = 'en-US';
-        u.rate = 0.82;
-        u.pitch = 1.05;
-        if (callback) u.onend = callback;
-        window.speechSynthesis.speak(u);
+      } else {
+        const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodeURIComponent(txt)}`;
+        const a = new Audio(audioUrl);
+        a.playbackRate = 0.82;
+        if (callback) a.onended = callback;
+        a.play().catch(e => {});
       }
     }
 
@@ -951,45 +947,40 @@
   </template>
 
   <script>
-    // --- ANDROID WEBVIEW GLOBAL SES MOTORU ---
-    let cachedEnglishVoice = null;
-
-    function getBestEnglishVoice() {
-      if (!('speechSynthesis' in window)) return null;
-      const voices = window.speechSynthesis.getVoices();
-      if (!voices || voices.length === 0) return null;
-      return voices.find(v => (v.lang === 'en-US' || v.lang === 'en-GB') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Jenny') || v.name.includes('Zira') || v.name.includes('Female')))
-          || voices.find(v => (v.lang === 'en-US' || v.lang === 'en-GB'))
-          || voices.find(v => v.lang.startsWith('en'))
-          || null;
-    }
-
-    function initVoices() {
-      cachedEnglishVoice = getBestEnglishVoice();
-    }
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = initVoices;
-      initVoices();
-    }
+    // --- ANDROID WEBVIEW İÇİN GARANTİLİ ÇALIŞAN SES MOTORU ---
+    let currentAudio = null;
 
     window.speakGlobal = function(text, rate = 0.8) {
-      if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
+      if (!text) return;
 
-      if (!cachedEnglishVoice) cachedEnglishVoice = getBestEnglishVoice();
+      try {
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        }
 
-      const utter = new SpeechSynthesisUtterance(text);
-      if (cachedEnglishVoice) {
-        utter.voice = cachedEnglishVoice;
-        utter.lang = cachedEnglishVoice.lang;
-      } else {
-        utter.lang = 'en-US';
+        if ('speechSynthesis' in window && window.speechSynthesis.getVoices().length > 0) {
+          window.speechSynthesis.cancel();
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.lang = 'en-US';
+          utter.rate = rate;
+          utter.pitch = 1.0;
+          window.speechSynthesis.speak(utter);
+          return;
+        }
+      } catch (e) {}
+
+      try {
+        const encodedText = encodeURIComponent(text);
+        const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodedText}`;
+        currentAudio = new Audio(audioUrl);
+        currentAudio.playbackRate = rate || 0.85;
+        currentAudio.play().catch(err => {
+          console.warn("Audio play blocked:", err);
+        });
+      } catch (err) {
+        console.error("Audio error:", err);
       }
-      utter.rate = rate;
-      utter.pitch = 1.05;
-
-      window.speechSynthesis.speak(utter);
     };
 
     const MASCOTS = [
