@@ -27,14 +27,29 @@ jobs:
           mkdir -p www
           cp index.html www/
           npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/text-to-speech
+          npm install --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/text-to-speech
           npx cap init "Sınıf Cepte" "com.sinifcepte.app" --web-dir www
           npx cap add android
 
-      - name: Generate App Icons
+      - name: Prepare & Generate App Icons
         run: |
-          npm install -g @capacitor/assets
-          npx @capacitor/assets generate --android
+          mkdir -p assets
+          SRC_ICON=""
+          if [ -f resources/icon.png ]; then SRC_ICON="resources/icon.png"; fi
+          if [ -f resources/icon.PNG ]; then SRC_ICON="resources/icon.PNG"; fi
+          if [ -f icon.png ]; then SRC_ICON="icon.png"; fi
+          if [ -f icon.PNG ]; then SRC_ICON="icon.PNG"; fi
+
+          if [ -n "$SRC_ICON" ]; then
+            echo "İkon dosyası bulundu: $SRC_ICON"
+            convert "$SRC_ICON" -resize 1024x1024! assets/logo.png || cp "$SRC_ICON" assets/logo.png
+            cp assets/logo.png assets/icon-only.png
+            cp assets/logo.png assets/icon-foreground.png
+            convert -size 1024x1024 xc:white assets/icon-background.png || true
+            npx @capacitor/assets generate --android --iconOnly || true
+          else
+            echo "Özel ikon bulunamadı, varsayılan simgeler kullanılıyor."
+          fi
 
       - name: Sync Capacitor
         run: |
@@ -50,10 +65,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SinifCepte-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
 
       - name: Upload AAB (Bundle) Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SinifCepte-AAB
-          path: android/app/build/outputs/bundle/debug/app-debug.aab
+          path: android/app/build/outputs/bundle/debug/*.aab
+          if-no-files-found: warn
