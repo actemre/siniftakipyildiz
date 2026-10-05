@@ -272,9 +272,7 @@
       <!-- Avatar Seçim Kutusu (Açılır) -->
       <div id="avatarSelectorBox" class="hidden mb-3 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
         <p class="text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-2">Öğrenci Avatarını Seçin:</p>
-        <div class="flex flex-wrap gap-2 text-xl" id="avatarGridList">
-          <!-- Dinamik Emojiler -->
-        </div>
+        <div class="flex flex-wrap gap-2 text-xl" id="avatarGridList"></div>
       </div>
 
       <!-- Profil Sekmeleri Butonları -->
@@ -836,9 +834,7 @@
   <!-- A4 YAZDIRMA & MOBİL PDF ŞABLONU (Gizli Konteyner) -->
   <!-- ======================================================== -->
   <div id="printReportContainer" class="hidden bg-white text-black p-8 max-w-4xl mx-auto font-sans">
-    <div id="printReportInnerContent">
-      <!-- Dinamik olarak JS tarafından doldurulur -->
-    </div>
+    <div id="printReportInnerContent"></div>
   </div>
 
   <!-- JAVASCRIPT MOTORU -->
@@ -884,7 +880,6 @@
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && typeof parsed === 'object') {
-            // Veri yapısı geriye dönük uyumluluk kontrolleri
             Object.keys(parsed).forEach(cls => {
               parsed[cls].forEach(st => {
                 if (!Array.isArray(st.notes)) st.notes = [];
@@ -1377,7 +1372,7 @@
     }
 
     // --- ÖĞRENCİ PROFİL SİSTEMİ ---
-    const AVATAR_LIST = ['👦', '👧', '🧑', '🧒', '👶', '🦸‍♂️️', '🦸‍♀️', '🧙‍♂️', '🧝‍♀️', '🚀', '⭐', '🦁', '🦊', '🐼', '🎨', '⚽', '📚', '🎯'];
+    const AVATAR_LIST = ['👦', '👧', '🧑', '🧒', '👶', '🦸‍♂', '🦸‍♀️', '🧙‍♂️️', '🧝‍♀️', '🚀', '⭐', '🦁', '🦊', '🐼', '🎨', '⚽', '📚', '🎯'];
 
     function initAvatarGrid() {
       const grid = document.getElementById('avatarGridList');
@@ -1425,7 +1420,6 @@
       initAvatarGrid();
       document.getElementById('avatarSelectorBox').classList.add('hidden');
 
-      // Bilgileri yerleştir
       document.getElementById('profileTitleName').textContent = `${student.name} ${student.surname}`;
       document.getElementById('profileClassBadge').textContent = activeClass;
       document.getElementById('profileAvatarDisplay').textContent = student.avatar || '👦';
@@ -1440,7 +1434,6 @@
 
       updateCalculatedAge();
 
-      // Veli 1 & 2
       const p1 = student.parent1 || {};
       document.getElementById('profInputP1Name').value = p1.name || '';
       document.getElementById('profInputP1Relation').value = p1.relation || 'Anne';
@@ -1452,13 +1445,10 @@
       document.getElementById('profInputP2Phone').value = p2.phone || '';
 
       document.getElementById('profInputAddress').value = student.address || '';
-
-      // Sağlık & Rehberlik
       document.getElementById('profInputAllergies').value = student.allergies || '';
       document.getElementById('profInputGuidance').value = student.guidanceNotes || '';
       document.getElementById('profInputHobbies').value = student.hobbies || '';
 
-      // Yıldız & Notlar
       document.getElementById('profModalStarBadge').textContent = `${student.stars || 0} ★`;
       renderProfileMiniNotes(student);
 
@@ -1739,12 +1729,8 @@
       const cleanName = `${student.name}_${student.surname}`.replace(/\s+/g, '_');
       const fileName = `${cleanName}_Ogrenci_Raporu.pdf`;
 
-      // Cihazın mobil olup olmadığını kontrol et
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || Boolean(window.Capacitor);
-
       showToast('📄 Rapor hazırlanıyor...', 'info');
 
-      // html2pdf konfigürasyonu
       const opt = {
         margin: [8, 8, 8, 8],
         filename: fileName,
@@ -1754,40 +1740,58 @@
       };
 
       try {
-        if (isMobile) {
-          // Mobil WebView (APK) için container'ı görünür kıl
-          printContainer.style.display = 'block';
-          printContainer.style.position = 'fixed';
-          printContainer.style.left = '-9999px';
-          printContainer.style.top = '0';
-          printContainer.style.width = '750px';
+        printContainer.style.display = 'block';
+        printContainer.style.position = 'fixed';
+        printContainer.style.left = '-9999px';
+        printContainer.style.top = '0';
+        printContainer.style.width = '750px';
 
-          // Blob çıktısı al
-          const pdfBlob = await html2pdf().set(opt).from(innerContent).outputPdf('blob');
-          const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        const worker = html2pdf().set(opt).from(innerContent);
+        const pdfBlob = await worker.outputPdf('blob');
+        const pdfDataUri = await worker.outputPdf('datauristring');
 
-          // 1. Android Yerel Paylaşım Menüsü (WhatsApp, Yazıcı, Drive)
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              files: [file],
-              title: `${student.name} ${student.surname} Raporu`,
-              text: `${activeClass} sınıfı ${student.name} ${student.surname} öğrenci gelişim raporu.`
-            });
-            showToast('✓ Paylaşım menüsü açıldı', 'success');
-          } else {
-            // Paylaşım yoksa doğrudan cihaza kaydet
-            await html2pdf().set(opt).from(innerContent).save();
-            showToast('✓ PDF cihazınıza indirildi', 'success');
+        let sharedSuccessfully = false;
+
+        // 1. Android / Mobil Yerel Paylaşım Menüsü (WhatsApp, Drive vb.)
+        if (navigator.share) {
+          try {
+            const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: `${student.name} ${student.surname} Raporu`,
+                text: `${activeClass} sınıfı ${student.name} ${student.surname} öğrenci gelişim raporu.`
+              });
+              sharedSuccessfully = true;
+              showToast('✓ Paylaşım menüsü açıldı', 'success');
+            }
+          } catch (shareErr) {
+            console.warn("Paylaşım iptal edildi veya desteklenmedi:", shareErr);
           }
-        } else {
-          // Masaüstü Chrome: Doğrudan yazdırma motorunu tetikle
-          window.print();
         }
+
+        // 2. Paylaşım açılmazsa doğrudan ekranda aç ve indirmeyi tetikle
+        if (!sharedSuccessfully) {
+          const blobUrl = URL.createObjectURL(pdfBlob);
+          
+          const downloadLink = document.createElement('a');
+          downloadLink.href = blobUrl;
+          downloadLink.download = fileName;
+          downloadLink.target = '_blank';
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          downloadLink.remove();
+
+          const pdfWindow = window.open(blobUrl, '_blank');
+          if (!pdfWindow) {
+            window.location.href = pdfDataUri;
+          }
+          showToast('✓ PDF oluşturuldu ve açıldı!', 'success');
+        }
+
       } catch (err) {
         console.error('PDF Hatası:', err);
-        // Hata durumunda yedek indirme
-        await html2pdf().set(opt).from(innerContent).save();
-        showToast('✓ PDF indirildi', 'success');
+        showToast('PDF oluşturulamadı, lütfen tekrar deneyin.', 'error');
       } finally {
         printContainer.style.display = 'none';
         printContainer.classList.add('hidden');
@@ -2019,7 +2023,6 @@
 
       pushHistory();
 
-      // Tüm öğrencilere not olarak ekle
       students.forEach(st => {
         if (!Array.isArray(st.notes)) st.notes = [];
         st.notes.unshift({
@@ -2036,7 +2039,6 @@
         });
       });
 
-      // Toplu görev kayıt defterine işle
       if (!bulkTasksData[activeClass]) bulkTasksData[activeClass] = [];
       bulkTasksData[activeClass].unshift({
         id: batchId,
@@ -2070,7 +2072,6 @@
       }
 
       list.forEach(task => {
-        // Kaç öğrenci tamamladı hesapla
         let completedCount = 0;
         students.forEach(st => {
           const matchingNote = (st.notes || []).find(n => n.batchId === task.id);
