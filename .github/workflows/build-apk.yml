@@ -2,10 +2,23 @@ name: Build Android APK & AAB
 
 on:
   workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Uygulama Sürüm Adı (Örn: 1.1.0)'
+        required: false
+        default: '1.1.0'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    env:
+      VERSION_CODE: ${{ github.run_number }}
+      VERSION_NAME: ${{ inputs.version_name || '1.1.0' }}
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
     steps:
       - name: Checkout Repository
@@ -22,27 +35,76 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - name: Initialize Web Directory & Install Capacitor
+      - name: Prepare Web Assets & Offline Libraries
         run: |
-          mkdir -p www
+          mkdir -p www/libs
           cp index.html www/
+          curl -fsSL https://cdn.tailwindcss.com -o www/libs/tailwind.js
+          curl -fsSL https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js -o www/libs/html2pdf.bundle.min.js
+          ls -lh www/ www/libs/
+
+      - name: Install Capacitor 7 & Native Plugins
+        run: |
           npm init -y
-          npm install --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android sharp
+          npm install --legacy-peer-deps \
+            @capacitor/core@7 \
+            @capacitor/cli@7 \
+            @capacitor/android@7 \
+            @capacitor/app@7 \
+            @capacitor/filesystem@7 \
+            @capacitor/share@7 \
+            @capacitor/status-bar@7 \
+            @capacitor-community/text-to-speech@7 \
+            sharp
           npx cap init "Sınıf Cepte" "com.sinifcepte.app" --web-dir www
           npx cap add android
 
-      - name: Fix Kotlin Duplicate Classes
+      - name: Configure Signing, Versioning & Kotlin Resolution
         run: |
-          cat << 'EOF' >> android/app/build.gradle
+          HAS_KEYSTORE="false"
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_BASE64" | tr -d '\r\n' | base64 --decode > android/app/release.keystore
+            HAS_KEYSTORE="true"
+            echo "Release imzalama anahtarı bulundu. İmzalı Release sürümü derlenecek."
+          else
+            echo "::warning::KEYSTORE secrets tanımlı değil. Geçici Debug sürümü derlenecek (güncellemelerde veri kaybını önlemek için keystore eklemeniz önerilir)."
+          fi
+          echo "HAS_KEYSTORE=$HAS_KEYSTORE" >> $GITHUB_ENV
+
+          HAS_KEYSTORE="$HAS_KEYSTORE" node << 'EOF'
+          const fs = require('fs');
+          const gradlePath = 'android/app/build.gradle';
+          let gradle = fs.readFileSync(gradlePath, 'utf8');
+
+          const versionCode = process.env.VERSION_CODE || '1';
+          const versionName = process.env.VERSION_NAME || '1.1.0';
+          const hasKeystore = process.env.HAS_KEYSTORE === 'true';
+
+          gradle = gradle.replace(/versionCode\s+\d+/, `versionCode ${versionCode}`);
+          gradle = gradle.replace(/versionName\s+"[^"]*"/, `versionName "${versionName}"`);
+
+          if (hasKeystore) {
+            gradle = gradle.replace(
+              /buildTypes\s*\{\s*release\s*\{/,
+              `signingConfigs {
+                  release {
+                      storeFile file("release.keystore")
+                      storePassword System.getenv("KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("KEY_ALIAS")
+                      keyPassword System.getenv("KEY_PASSWORD")
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release`
+            );
+          }
+
+          gradle += `
 
           configurations.all {
               resolutionStrategy.capabilitiesResolution.withCapability("org.jetbrains.kotlin:kotlin-stdlib") {
                   selectHighestVersion()
-              }
-              resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-                  if (details.requested.group == 'org.jetbrains.kotlin' && (details.requested.name == 'kotlin-stdlib-jdk7' || details.requested.name == 'kotlin-stdlib-jdk8')) {
-                      details.useTarget("org.jetbrains.kotlin:kotlin-stdlib:1.8.22")
-                  }
               }
           }
           dependencies {
@@ -55,78 +117,128 @@ jobs:
                   }
               }
           }
+          `;
+
+          fs.writeFileSync(gradlePath, gradle, 'utf8');
+          console.log(`build.gradle güncellendi -> versionCode: ${versionCode}, versionName: ${versionName}, releaseSigning: ${hasKeystore}`);
           EOF
 
-      - name: Generate and Override App Icons
+      - name: Generate Legacy & Adaptive App Icons
         run: |
-          node -e '
-          const fs = require("fs");
-          const path = require("path");
-          const sharp = require("sharp");
+          node << 'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const sharp = require('sharp');
 
           const possiblePaths = [
-            "resources/icon.png",
-            "resources/icon.PNG",
-            "icon.png",
-            "icon.PNG"
+            'resources/icon.png',
+            'resources/icon.PNG',
+            'icon.png',
+            'icon.PNG'
           ];
 
-          let iconPath = possiblePaths.find(p => fs.existsSync(p));
-
+          const iconPath = possiblePaths.find(p => fs.existsSync(p));
           if (!iconPath) {
-            console.error("HATA: İkon dosyası bulunamadı! Lütfen resources/icon.png yüklendiğinden emin olun.");
-            process.exit(1);
+            console.warn('UYARI: Özel ikon bulunamadı (resources/icon.png). Varsayılan Capacitor ikonu kullanılacak.');
+            process.exit(0);
           }
 
-          console.log("Kullanılan ikon:", iconPath);
+          console.log('Kullanılan ikon:', iconPath);
+          const resDir = path.join('android', 'app', 'src', 'main', 'res');
 
-          const resDir = path.join("android", "app", "src", "main", "res");
-          const sizes = {
-            "mipmap-mdpi": 48,
-            "mipmap-hdpi": 72,
-            "mipmap-xhdpi": 96,
-            "mipmap-xxhdpi": 144,
-            "mipmap-xxxhdpi": 192
+          const legacySizes = {
+            'mipmap-mdpi': 48,
+            'mipmap-hdpi': 72,
+            'mipmap-xhdpi': 96,
+            'mipmap-xxhdpi': 144,
+            'mipmap-xxxhdpi': 192
+          };
+
+          const adaptiveFgSizes = {
+            'mipmap-mdpi': 108,
+            'mipmap-hdpi': 162,
+            'mipmap-xhdpi': 216,
+            'mipmap-xxhdpi': 324,
+            'mipmap-xxxhdpi': 432
           };
 
           async function processIcons() {
-            for (const [folder, size] of Object.entries(sizes)) {
+            for (const [folder, legacySize] of Object.entries(legacySizes)) {
               const targetFolder = path.join(resDir, folder);
-              if (fs.existsSync(targetFolder)) {
-                await sharp(iconPath).resize(size, size).toFile(path.join(targetFolder, "ic_launcher.png"));
-                await sharp(iconPath).resize(size, size).toFile(path.join(targetFolder, "ic_launcher_round.png"));
-                await sharp(iconPath).resize(size, size).toFile(path.join(targetFolder, "ic_launcher_foreground.png"));
-              }
+              if (!fs.existsSync(targetFolder)) continue;
+
+              await sharp(iconPath)
+                .resize(legacySize, legacySize, { fit: 'cover' })
+                .png()
+                .toFile(path.join(targetFolder, 'ic_launcher.png'));
+
+              await sharp(iconPath)
+                .resize(legacySize, legacySize, { fit: 'cover' })
+                .png()
+                .toFile(path.join(targetFolder, 'ic_launcher_round.png'));
+
+              // Adaptive icon güvenli alan (%66 iç boyut + şeffaf dış boşluk)
+              const fgSize = adaptiveFgSizes[folder];
+              const innerSize = Math.round(fgSize * 0.66);
+              const padStart = Math.floor((fgSize - innerSize) / 2);
+              const padEnd = fgSize - innerSize - padStart;
+
+              await sharp(iconPath)
+                .resize(innerSize, innerSize, {
+                  fit: 'contain',
+                  background: { r: 0, g: 0, b: 0, alpha: 0 }
+                })
+                .extend({
+                  top: padStart,
+                  bottom: padEnd,
+                  left: padStart,
+                  right: padEnd,
+                  background: { r: 0, g: 0, b: 0, alpha: 0 }
+                })
+                .png()
+                .toFile(path.join(targetFolder, 'ic_launcher_foreground.png'));
             }
-            console.log("Tüm Android ikonları başarıyla yenilendi!");
+            console.log('Tüm Android ikonları güvenli alan boşluğuyla yenilendi.');
           }
 
           processIcons().catch(err => {
             console.error(err);
             process.exit(1);
           });
-          '
+          EOF
 
       - name: Sync Capacitor
         run: |
           npx cap sync android
 
-      - name: Build Debug APK & Bundle (AAB)
+      - name: Build Android APK & AAB
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug bundleDebug --no-daemon
+          mkdir -p ../dist-output
+
+          if [ "$HAS_KEYSTORE" = "true" ]; then
+            ./gradlew assembleRelease bundleRelease --no-daemon
+            cp app/build/outputs/apk/release/*.apk "../dist-output/SinifCepte-v${VERSION_NAME}-b${VERSION_CODE}-release.apk"
+            cp app/build/outputs/bundle/release/*.aab "../dist-output/SinifCepte-v${VERSION_NAME}-b${VERSION_CODE}-release.aab"
+          else
+            ./gradlew assembleDebug bundleDebug --no-daemon
+            cp app/build/outputs/apk/debug/*.apk "../dist-output/SinifCepte-v${VERSION_NAME}-b${VERSION_CODE}-debug.apk"
+            cp app/build/outputs/bundle/debug/*.aab "../dist-output/SinifCepte-v${VERSION_NAME}-b${VERSION_CODE}-debug.aab"
+          fi
+
+          ls -lh ../dist-output/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SinifCepte-APK
-          path: android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: warn
+          name: SinifCepte-APK-v${{ env.VERSION_NAME }}-b${{ env.VERSION_CODE }}
+          path: dist-output/*.apk
+          if-no-files-found: error
 
       - name: Upload AAB (Bundle) Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SinifCepte-AAB
-          path: android/app/build/outputs/bundle/debug/*.aab
-          if-no-files-found: warn
+          name: SinifCepte-AAB-v${{ env.VERSION_NAME }}-b${{ env.VERSION_CODE }}
+          path: dist-output/*.aab
+          if-no-files-found: error
