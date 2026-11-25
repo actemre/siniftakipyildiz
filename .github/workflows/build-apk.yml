@@ -54,7 +54,7 @@ jobs:
             @capacitor/filesystem@7 \
             @capacitor/share@7 \
             @capacitor/status-bar@7 \
-            @capacitor-community/text-to-speech@7 \
+            @capacitor-community/text-to-speech \
             sharp
           npx cap init "Sınıf Cepte" "com.sinifcepte.app" --web-dir www
           npx cap add android
@@ -177,7 +177,6 @@ jobs:
                 .png()
                 .toFile(path.join(targetFolder, 'ic_launcher_round.png'));
 
-              // Adaptive icon güvenli alan (%66 iç boyut + şeffaf dış boşluk)
               const fgSize = adaptiveFgSizes[folder];
               const innerSize = Math.round(fgSize * 0.66);
               const padStart = Math.floor((fgSize - innerSize) / 2);
