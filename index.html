@@ -5,11 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Sınıf Cepte - Öğretmen Takip Sistemi</title>
 
+  <!-- Göz Yormayan Yazı Tipi (Çevrimiçi: Plus Jakarta Sans, Çevrimdışı: Sistem Sans-Serif) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <!-- Çevrimdışı Öncelikli Tailwind CSS (APK'da yerel libs/, tarayıcıda CDN yedeği) -->
   <script>
     window.applyTailwindConfig = function() {
       if (window.tailwind) {
-        window.tailwind.config = { darkMode: 'class' };
+        window.tailwind.config = {
+          darkMode: 'class',
+          theme: {
+            extend: {
+              fontFamily: {
+                sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif']
+              }
+            }
+          }
+        };
       }
     };
   </script>
@@ -32,12 +46,22 @@
     }
 
     body {
+      font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       padding-bottom: calc(5rem + var(--safe-bottom));
       -webkit-tap-highlight-color: transparent;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      letter-spacing: -0.005em;
     }
 
     header.safe-header {
       padding-top: var(--safe-top);
+    }
+
+    aside.safe-drawer {
+      padding-top: var(--safe-top);
+      padding-bottom: var(--safe-bottom);
     }
 
     .wheel-pointer {
@@ -47,20 +71,19 @@
       transform: translateX(-50%);
       width: 0;
       height: 0;
-      border-left: 12px solid transparent;
-      border-right: 12px solid transparent;
-      border-top: 24px solid #dc2626;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+      border-left: 11px solid transparent;
+      border-right: 11px solid transparent;
+      border-top: 22px solid #b91c1c;
       z-index: 20;
     }
 
     .sharp-card {
-      border-radius: 6px;
+      border-radius: 4px;
     }
 
     .sharp-btn {
-      border-radius: 6px;
-      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+      border-radius: 4px;
+      transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease, opacity 0.14s ease;
     }
 
     .no-scrollbar::-webkit-scrollbar {
@@ -86,7 +109,7 @@
         width: 100%;
         display: block !important;
         background: #ffffff !important;
-        color: #000000 !important;
+        color: #1c1b19 !important;
         padding: 0 !important;
       }
       .no-print {
@@ -95,117 +118,178 @@
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen font-sans transition-colors duration-200">
+<body class="bg-[#F5F3EF] text-[#1C1B19] dark:bg-[#141312] dark:text-[#ECEAE4] min-h-screen font-sans transition-colors duration-150">
 
   <!-- Toast Bildirim Alanı -->
   <div id="toastContainer" class="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex flex-col items-end gap-2 sm:max-w-sm pointer-events-none no-print"></div>
 
-  <!-- Üst Menü -->
-  <header class="safe-header bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 shadow-sm no-print">
-    <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex flex-col gap-2.5">
+  <!-- ======================================================== -->
+  <!-- SOL AÇILIR MENÜ (DRAWER) -->
+  <!-- ======================================================== -->
+  <div id="drawerBackdrop" onclick="closeSideDrawer()" class="hidden fixed inset-0 bg-[#141312]/60 z-50 transition-opacity no-print"></div>
 
-      <!-- 1. Satır: Marka, Sınıf Sekmeleri ve Temel Eylemler -->
-      <div class="flex items-center justify-between gap-2 flex-wrap">
-
-        <!-- Sol: Logo & Sınıflar -->
-        <div class="flex items-center gap-2.5 min-w-0 flex-1 sm:flex-initial">
-          <div class="flex items-center gap-2 shrink-0 cursor-pointer" onclick="render()">
-            <div class="w-8 h-8 rounded-lg bg-slate-900 dark:bg-amber-500 text-amber-400 dark:text-slate-950 flex items-center justify-center text-sm font-black shadow-sm">
-              ★
-            </div>
-            <span class="font-bold text-slate-900 dark:text-white text-sm tracking-tight hidden xs:inline">Sınıf Cepte</span>
+  <aside id="sideDrawer" aria-hidden="true" class="safe-drawer fixed top-0 left-0 bottom-0 w-72 max-w-[82vw] bg-[#FAF9F6] dark:bg-[#1C1B19] border-r border-[#DCD8D0] dark:border-[#33302B] z-50 transform -translate-x-full transition-transform duration-200 ease-out flex flex-col justify-between shadow-xl no-print">
+    <div class="flex flex-col flex-1 overflow-y-auto">
+      <!-- Çekmece Başlığı -->
+      <div class="px-4 py-3.5 border-b border-[#E5E1D8] dark:border-[#2E2C27] flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 sharp-card bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715] flex items-center justify-center text-sm font-bold">
+            ★
           </div>
+          <div>
+            <div class="text-sm font-bold text-[#1C1B19] dark:text-[#ECEAE4]">Sınıf Cepte</div>
+            <div class="text-[11px] text-[#6E6960] dark:text-[#9E9990]">Öğretmen Takip Sistemi</div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onclick="closeSideDrawer()"
+          aria-label="Menüyü Kapat"
+          class="w-8 h-8 sharp-btn flex items-center justify-center text-[#6E6960] hover:text-[#1C1B19] dark:text-[#9E9990] dark:hover:text-[#ECEAE4] hover:bg-[#EFECE6] dark:hover:bg-[#252320] font-bold text-sm"
+        >
+          ✕
+        </button>
+      </div>
 
-          <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar max-w-full">
-            <div id="classTabsContainer" class="flex items-center gap-1"></div>
+      <!-- Menü Grupları -->
+      <nav class="p-3 space-y-5 flex-1">
+        <!-- Grup 1: Sınıf Araçları -->
+        <div>
+          <div class="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-[#8C867B] dark:text-[#78736A]">
+            Sınıf Araçları
+          </div>
+          <div class="space-y-1">
             <button
               type="button"
-              onclick="openClassModal()"
-              title="Sınıf Ekle veya Yönet"
-              class="px-2.5 py-1 text-xs font-semibold rounded-md transition bg-slate-800 hover:bg-slate-900 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 flex items-center gap-1 shrink-0"
+              onclick="openModalFromDrawer(openBulkTaskModal)"
+              class="w-full px-3 py-2.5 sharp-btn text-left text-xs font-semibold text-[#262421] dark:text-[#E6E2D8] hover:bg-[#EFECE6] dark:hover:bg-[#252320] flex items-center justify-between"
             >
-              <span>+</span>
-              <span>Sınıf</span>
+              <span>Toplu Görev &amp; Ödev</span>
+              <span class="text-[#8C867B] text-xs">→</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="openModalFromDrawer(openGroupModal)"
+              class="w-full px-3 py-2.5 sharp-btn text-left text-xs font-semibold text-[#262421] dark:text-[#E6E2D8] hover:bg-[#EFECE6] dark:hover:bg-[#252320] flex items-center justify-between"
+            >
+              <span>Rastgele Grup Oluştur</span>
+              <span class="text-[#8C867B] text-xs">→</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="openModalFromDrawer(openPickerModal)"
+              class="w-full px-3 py-2.5 sharp-btn text-left text-xs font-semibold text-[#262421] dark:text-[#E6E2D8] hover:bg-[#EFECE6] dark:hover:bg-[#252320] flex items-center justify-between"
+            >
+              <span>Söz Hakkı Çarkı</span>
+              <span class="text-[#8C867B] text-xs">→</span>
             </button>
           </div>
         </div>
 
-        <!-- Sağ: Araçlar -->
-        <div class="flex items-center gap-1.5 flex-wrap justify-end">
+        <!-- Grup 2: Sınıf Yönetimi -->
+        <div class="pt-3 border-t border-[#E5E1D8] dark:border-[#2E2C27]">
+          <div class="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-[#8C867B] dark:text-[#78736A]">
+            Sınıf Yönetimi
+          </div>
+          <div class="space-y-1">
+            <button
+              type="button"
+              onclick="openModalFromDrawer(openClassModal)"
+              class="w-full px-3 py-2.5 sharp-btn text-left text-xs font-semibold text-[#262421] dark:text-[#E6E2D8] hover:bg-[#EFECE6] dark:hover:bg-[#252320] flex items-center justify-between"
+            >
+              <span>Sınıfları Yönet / Ekle</span>
+              <span class="text-[#8C867B] text-xs">→</span>
+            </button>
+
+            <button
+              id="drawerUndoBtn"
+              type="button"
+              onclick="undo()"
+              disabled
+              class="w-full px-3 py-2.5 sharp-btn text-left text-xs font-semibold text-[#262421] dark:text-[#E6E2D8] hover:bg-[#EFECE6] dark:hover:bg-[#252320] disabled:opacity-35 flex items-center justify-between"
+            >
+              <span>Son İşlemi Geri Al</span>
+              <span id="drawerUndoCount" class="text-[11px] font-mono text-[#6E6960] dark:text-[#9E9990]">↩</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Alt Tema Çubuğu -->
+    <div class="p-3 border-t border-[#E5E1D8] dark:border-[#2E2C27] shrink-0">
+      <button
+        type="button"
+        onclick="toggleDarkMode()"
+        class="w-full px-3 py-2.5 sharp-btn border border-[#DCD8D0] dark:border-[#33302B] bg-[#F5F3EF] dark:bg-[#252320] hover:bg-[#EFECE6] dark:hover:bg-[#2E2C27] text-xs font-semibold text-[#1C1B19] dark:text-[#ECEAE4] flex items-center justify-between"
+      >
+        <span>Görünüm Teması</span>
+        <span id="drawerThemeLabel" class="font-mono text-[11px] px-2 py-0.5 sharp-card bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715]">Koyu</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ======================================================== -->
+  <!-- ÜST MENÜ -->
+  <!-- ======================================================== -->
+  <header class="safe-header bg-[#FAF9F6] dark:bg-[#1C1B19] border-b border-[#DCD8D0] dark:border-[#2E2C27] sticky top-0 z-40 no-print">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex flex-col gap-2">
+
+      <!-- 1. Satır: Sol Menü Butonu + Sınıf Sekmeleri & Yeni Sınıf Butonu -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
-            onclick="openBulkTaskModal()"
-            title="Sınıfa Toplu Görev ve Ödev Ver"
-            class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition"
+            onclick="openSideDrawer()"
+            aria-label="Menüyü Aç"
+            class="w-9 h-9 sharp-btn border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#252320] hover:bg-[#EFECE6] dark:hover:bg-[#2E2C27] text-[#1C1B19] dark:text-[#ECEAE4] flex items-center justify-center shrink-0"
           >
-            Görevler
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
           </button>
 
-          <button
-            type="button"
-            onclick="openGroupModal()"
-            title="Rastgele Grup Oluştur"
-            class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition"
-          >
-            Gruplar
-          </button>
+          <span onclick="render()" class="cursor-pointer font-bold text-sm text-[#1C1B19] dark:text-[#ECEAE4] hidden sm:inline">
+            Sınıf Cepte
+          </span>
+        </div>
+
+        <!-- Sağ: Sınıf Sekmeleri + Yeni/Güncel Sınıf Butonu -->
+        <div class="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
+          <div id="classTabsWrapper" class="hidden items-center gap-1 bg-[#EFECE6] dark:bg-[#252320] p-1 sharp-card border border-[#DCD8D0] dark:border-[#33302B] overflow-x-auto no-scrollbar max-w-full">
+            <div id="classTabsContainer" class="flex items-center gap-1"></div>
+          </div>
 
           <button
+            id="headerClassActionBtn"
             type="button"
-            onclick="openPickerModal()"
-            title="Söz Hakkı Çarkı"
-            class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition"
+            onclick="openClassModal()"
+            class="h-9 px-3 sharp-btn bg-[#262421] hover:bg-[#3A3732] dark:bg-[#E6E2D8] dark:hover:bg-[#D4CFC3] text-[#FAF9F6] dark:text-[#181715] text-xs font-bold shrink-0 whitespace-nowrap"
           >
-            Çark
-          </button>
-
-          <button
-            type="button"
-            onclick="openBackupModal()"
-            title="Verileri Yedekle veya Geri Yükle"
-            class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold transition"
-          >
-            Yedek
-          </button>
-
-          <button
-            id="undoBtn"
-            type="button"
-            onclick="undo()"
-            title="Son İşlemi Geri Al"
-            class="w-8 h-8 flex items-center justify-center text-sm bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-bold border border-slate-300 dark:border-slate-700 disabled:opacity-35 transition"
-            disabled
-          >
-            ↩
-          </button>
-
-          <button
-            id="themeToggleBtn"
-            type="button"
-            onclick="toggleDarkMode()"
-            title="Görünüm Temasını Değiştir"
-            class="w-8 h-8 flex items-center justify-center text-sm rounded-lg transition bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-400 border border-slate-300 dark:border-slate-700"
-          >
-            <span id="themeToggleIcon">🌙</span>
+            + Sınıf Ekle
           </button>
         </div>
       </div>
 
       <!-- 2. Satır: Arama, Sıralama ve Görünüm -->
-      <div class="flex items-center gap-2 flex-wrap">
-        <div class="relative flex-1 min-w-[170px]">
+      <div class="flex items-center gap-1.5">
+        <div class="relative flex-1 min-w-0">
           <input
             type="text"
             id="searchInput"
             oninput="render()"
-            placeholder="Öğrenci adı veya okul numarası ara..."
-            class="w-full pl-3 pr-8 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            placeholder="Öğrenci veya no ara..."
+            class="w-full h-8 pl-2.5 pr-7 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] text-[#1C1B19] dark:text-[#ECEAE4] placeholder-[#8C867B] dark:placeholder-[#78736A] sharp-card focus:outline-none focus:border-[#262421] dark:focus:border-[#E6E2D8] transition"
           >
           <button
             id="clearSearchBtn"
             type="button"
             onclick="clearSearch()"
-            class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold px-1"
+            class="hidden absolute right-1.5 top-1/2 -translate-y-1/2 text-[#8C867B] hover:text-[#1C1B19] dark:hover:text-[#ECEAE4] text-xs font-bold px-1"
             title="Aramayı Temizle"
           >
             ✕
@@ -216,17 +300,17 @@
           id="sortSelect"
           onchange="changeSortMode()"
           aria-label="Sıralama"
-          class="px-2.5 py-1.5 text-xs font-medium bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          class="h-8 px-2 text-xs font-medium bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] text-[#262421] dark:text-[#E6E2D8] sharp-card focus:outline-none focus:border-[#262421] dark:focus:border-[#E6E2D8] shrink-0"
         >
-          <option value="default">Sıra: Liste</option>
-          <option value="name">Sıra: Ad (A-Z)</option>
-          <option value="stars_desc">Sıra: Yıldız (Çoktan Aza)</option>
-          <option value="number">Sıra: Okul No</option>
+          <option value="default">Liste</option>
+          <option value="name">A-Z</option>
+          <option value="stars_desc">Yıldız</option>
+          <option value="number">No</option>
         </select>
 
-        <div class="bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-0.5 shrink-0">
-          <button id="btnList" type="button" onclick="setMode('list')" title="Liste Görünümü" class="px-2.5 py-1 text-xs font-bold rounded-md transition bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm">☰</button>
-          <button id="btnGrid" type="button" onclick="setMode('grid')" title="Kart Görünümü" class="px-2.5 py-1 text-xs font-bold rounded-md transition text-slate-500 dark:text-slate-400">⊞</button>
+        <div class="h-8 bg-[#EFECE6] dark:bg-[#252320] p-0.5 sharp-card border border-[#D4CFC4] dark:border-[#38352F] flex items-center gap-0.5 shrink-0">
+          <button id="btnList" type="button" onclick="setMode('list')" title="Liste Görünümü" class="h-full px-2 text-xs font-bold sharp-card transition bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715]">☰</button>
+          <button id="btnGrid" type="button" onclick="setMode('grid')" title="Kart Görünümü" class="h-full px-2 text-xs font-bold sharp-card transition text-[#6E6960] dark:text-[#9E9990]">⊞</button>
         </div>
       </div>
 
@@ -234,22 +318,22 @@
   </header>
 
   <!-- Ana İçerik -->
-  <main class="max-w-7xl mx-auto px-3 sm:px-4 pt-4 no-print">
+  <main class="max-w-7xl mx-auto px-3 sm:px-4 pt-3.5 no-print">
 
     <!-- Sınıf Özet Çubuğu -->
-    <section class="bg-white dark:bg-slate-900 rounded-xl p-3.5 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3 border border-slate-200 dark:border-slate-800">
+    <section class="bg-[#FAF9F6] dark:bg-[#1C1B19] sharp-card p-3.5 mb-3.5 flex flex-wrap items-center justify-between gap-3 border border-[#DCD8D0] dark:border-[#2E2C27]">
       <div>
         <div class="flex items-center gap-2 flex-wrap">
-          <h1 id="classBannerTitle" class="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Sınıf Listesi</h1>
-          <span id="attendanceSummary" class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">0 Öğrenci</span>
+          <h1 id="classBannerTitle" class="text-sm sm:text-base font-bold text-[#1C1B19] dark:text-[#ECEAE4]">Sınıf Listesi</h1>
+          <span id="attendanceSummary" class="text-[11px] font-semibold px-2 py-0.5 sharp-card bg-[#EFECE6] dark:bg-[#252320] text-[#4A4640] dark:text-[#C4BFB4] border border-[#D4CFC4] dark:border-[#38352F]">0 Öğrenci</span>
         </div>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Öğrenci adına veya rozetine dokunarak profil ve veli dosyasına ulaşabilirsiniz.</p>
+        <p class="text-[11px] text-[#6E6960] dark:text-[#9E9990] mt-0.5 leading-relaxed">Öğrenci adına veya rozetine dokunarak profil ve veli dosyasına ulaşabilirsiniz.</p>
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
-        <div class="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900">
-          <span class="text-[11px] font-medium text-amber-800 dark:text-amber-300">Toplam:</span>
-          <span id="totalDisplay" class="text-sm font-bold text-amber-700 dark:text-amber-400 font-mono">0 ★</span>
+        <div class="flex items-center gap-1.5 bg-[#EFECE6] dark:bg-[#252320] px-3 py-1.5 sharp-card border border-[#D4CFC4] dark:border-[#38352F]">
+          <span class="text-[11px] font-medium text-[#5C5852] dark:text-[#9E9990]">Toplam:</span>
+          <span id="totalDisplay" class="text-sm font-bold text-[#1C1B19] dark:text-[#ECEAE4] font-mono">0 ★</span>
         </div>
 
         <button
@@ -257,7 +341,7 @@
           type="button"
           onclick="addStarToAllPresent()"
           title="Bugün sınıfta olan tüm öğrencilere +1 yıldız ekle"
-          class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition disabled:opacity-40"
+          class="px-3 py-1.5 bg-[#262421] hover:bg-[#3A3732] dark:bg-[#E6E2D8] dark:hover:bg-[#D4CFC3] text-[#FAF9F6] dark:text-[#181715] text-xs font-bold sharp-btn disabled:opacity-35"
         >
           +1 Tüm Sınıf
         </button>
@@ -272,25 +356,25 @@
   <!-- ======================================================== -->
   <!-- MODAL: ÖĞRENCİ PROFİL SAYFASI & A4 DOSYASI -->
   <!-- ======================================================== -->
-  <div id="profileModal" data-modal="true" class="hidden fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto no-print">
-    <div class="bg-white dark:bg-slate-900 rounded-xl max-w-3xl w-full p-4 sm:p-5 shadow-xl border border-slate-200 dark:border-slate-800 max-h-[92vh] flex flex-col my-auto">
+  <div id="profileModal" data-modal="true" class="hidden fixed inset-0 bg-[#141312]/70 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto no-print">
+    <div class="bg-[#FAF9F6] dark:bg-[#1C1B19] sharp-card max-w-3xl w-full p-4 sm:p-5 shadow-2xl border border-[#D4CFC4] dark:border-[#33302B] max-h-[92vh] flex flex-col my-auto">
 
       <!-- Üst Başlık -->
-      <div class="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 mb-3 shrink-0 flex-wrap">
+      <div class="flex items-center justify-between gap-2 border-b border-[#E5E1D8] dark:border-[#2E2C27] pb-3 mb-3 shrink-0 flex-wrap">
         <div class="flex items-center gap-3">
-          <button type="button" onclick="toggleBadgeColorPicker()" title="Rozet Rengini Değiştir" class="relative group">
-            <div id="profileAvatarDisplay" class="w-11 h-11 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm font-bold tracking-wide shadow-sm">
+          <button type="button" onclick="toggleBadgeColorPicker()" title="Rozet Tonunu Değiştir" class="relative">
+            <div id="profileAvatarDisplay" class="w-11 h-11 sharp-card bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715] flex items-center justify-center text-sm font-bold tracking-wide">
               ÖA
             </div>
-            <span class="absolute -bottom-1 -right-1 bg-slate-800 dark:bg-slate-700 text-[9px] text-white px-1 rounded">Renk</span>
+            <span class="absolute -bottom-1 -right-1 bg-[#4A4640] dark:bg-[#C4BFB4] text-[9px] text-[#FAF9F6] dark:text-[#181715] px-1 sharp-card font-bold">Ton</span>
           </button>
 
           <div>
             <div class="flex items-center gap-2 flex-wrap">
-              <h3 id="profileTitleName" class="text-base font-bold text-slate-900 dark:text-white">Öğrenci Adı</h3>
-              <span id="profileClassBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">-</span>
+              <h3 id="profileTitleName" class="text-base font-bold text-[#1C1B19] dark:text-[#ECEAE4]">Öğrenci Adı</h3>
+              <span id="profileClassBadge" class="px-2 py-0.5 sharp-card text-[10px] font-bold bg-[#EFECE6] dark:bg-[#252320] text-[#262421] dark:text-[#E6E2D8] border border-[#D4CFC4] dark:border-[#38352F]">-</span>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Öğrenci Bilgi, Veli İletişim ve Gelişim Dosyası</p>
+            <p class="text-xs text-[#6E6960] dark:text-[#9E9990]">Öğrenci Bilgi, Veli İletişim ve Gelişim Dosyası</p>
           </div>
         </div>
 
@@ -298,8 +382,7 @@
           <button
             type="button"
             onclick="handleDirectPrint()"
-            title="Doğrudan Yazdır"
-            class="hidden sm:inline-flex px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold transition"
+            class="hidden sm:inline-flex px-2.5 py-1.5 bg-[#FAF9F6] hover:bg-[#EFECE6] dark:bg-[#252320] dark:hover:bg-[#2E2C27] text-[#1C1B19] dark:text-[#ECEAE4] border border-[#D4CFC4] dark:border-[#38352F] sharp-btn text-xs font-semibold"
           >
             Yazdır
           </button>
@@ -307,26 +390,26 @@
             id="printPdfBtn"
             type="button"
             onclick="handlePrintOrPdfAction()"
-            class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition"
+            class="px-3 py-1.5 bg-[#262421] hover:bg-[#3A3732] dark:bg-[#E6E2D8] dark:hover:bg-[#D4CFC3] text-[#FAF9F6] dark:text-[#181715] sharp-btn text-xs font-bold"
           >
             PDF Paylaş / İndir
           </button>
-          <button type="button" onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-base px-2">✕</button>
+          <button type="button" onclick="closeProfileModal()" class="text-[#6E6960] hover:text-[#1C1B19] dark:text-[#9E9990] dark:hover:text-[#ECEAE4] font-bold text-base px-2">✕</button>
         </div>
       </div>
 
-      <!-- Rozet Rengi Seçici -->
-      <div id="badgeColorBox" class="hidden mb-3 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-        <p class="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-2">Öğrenci Rozet Rengi:</p>
+      <!-- Rozet Tonu Seçici -->
+      <div id="badgeColorBox" class="hidden mb-3 p-3 bg-[#F5F3EF] dark:bg-[#252320] border border-[#DCD8D0] dark:border-[#33302B] sharp-card">
+        <p class="text-[11px] font-semibold text-[#5C5852] dark:text-[#B8B2A6] mb-2">Rozet Tonu:</p>
         <div class="flex flex-wrap gap-2" id="badgeColorList"></div>
       </div>
 
       <!-- Sekmeler -->
-      <div class="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 pb-2 mb-3 overflow-x-auto shrink-0 text-xs font-semibold">
-        <button id="pTabBtnGenel" type="button" onclick="setProfileTab('genel')" class="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950">Genel Bilgiler</button>
-        <button id="pTabBtnVeli" type="button" onclick="setProfileTab('veli')" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Veli &amp; İletişim</button>
-        <button id="pTabBtnSaglik" type="button" onclick="setProfileTab('saglik')" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Sağlık &amp; Rehberlik</button>
-        <button id="pTabBtnGorev" type="button" onclick="setProfileTab('gorev')" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Yıldız &amp; Görevler</button>
+      <div class="flex items-center gap-1 border-b border-[#E5E1D8] dark:border-[#2E2C27] pb-2 mb-3 overflow-x-auto no-scrollbar shrink-0 text-xs font-semibold">
+        <button id="pTabBtnGenel" type="button" onclick="setProfileTab('genel')" class="px-3 py-1.5 sharp-btn bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715]">Genel Bilgiler</button>
+        <button id="pTabBtnVeli" type="button" onclick="setProfileTab('veli')" class="px-3 py-1.5 sharp-btn text-[#5C5852] dark:text-[#9E9990] hover:bg-[#EFECE6] dark:hover:bg-[#252320]">Veli &amp; İletişim</button>
+        <button id="pTabBtnSaglik" type="button" onclick="setProfileTab('saglik')" class="px-3 py-1.5 sharp-btn text-[#5C5852] dark:text-[#9E9990] hover:bg-[#EFECE6] dark:hover:bg-[#252320]">Sağlık &amp; Rehberlik</button>
+        <button id="pTabBtnGorev" type="button" onclick="setProfileTab('gorev')" class="px-3 py-1.5 sharp-btn text-[#5C5852] dark:text-[#9E9990] hover:bg-[#EFECE6] dark:hover:bg-[#252320]">Yıldız &amp; Görevler</button>
       </div>
 
       <!-- Sekme İçerikleri -->
@@ -336,33 +419,33 @@
         <div id="pTabContentGenel" class="space-y-3">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Adı</label>
-              <input type="text" id="profInputName" class="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg font-medium text-slate-800 dark:text-white">
+              <label class="block text-[11px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-1">Adı</label>
+              <input type="text" id="profInputName" oninput="updateProfileBadgePreview()" class="w-full px-3 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card font-medium text-[#1C1B19] dark:text-[#ECEAE4]">
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Soyadı</label>
-              <input type="text" id="profInputSurname" class="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg font-medium text-slate-800 dark:text-white">
+              <label class="block text-[11px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-1">Soyadı</label>
+              <input type="text" id="profInputSurname" oninput="updateProfileBadgePreview()" class="w-full px-3 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card font-medium text-[#1C1B19] dark:text-[#ECEAE4]">
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Okul Numarası</label>
-              <input type="text" id="profInputNumber" placeholder="Örn: 245" class="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg font-medium text-slate-800 dark:text-white">
+              <label class="block text-[11px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-1">Okul Numarası</label>
+              <input type="text" id="profInputNumber" placeholder="Örn: 245" class="w-full px-3 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card font-medium text-[#1C1B19] dark:text-[#ECEAE4]">
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Cinsiyet</label>
-              <select id="profInputGender" class="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg font-medium text-slate-800 dark:text-white">
+              <label class="block text-[11px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-1">Cinsiyet</label>
+              <select id="profInputGender" class="w-full px-3 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card font-medium text-[#1C1B19] dark:text-[#ECEAE4]">
                 <option value="Belirtilmedi">Belirtilmedi</option>
                 <option value="Kız">Kız</option>
                 <option value="Erkek">Erkek</option>
               </select>
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Doğum Tarihi</label>
-              <input type="date" id="profInputDob" onchange="updateCalculatedAge()" class="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg font-medium text-slate-800 dark:text-white">
-              <span id="profCalculatedAge" class="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5 block"></span>
+              <label class="block text-[11px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-1">Doğum Tarihi</label>
+              <input type="date" id="profInputDob" onchange="updateCalculatedAge()" class="w-full px-3 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card font-medium text-[#1C1B19] dark:text-[#ECEAE4]">
+              <span id="profCalculatedAge" class="text-[10px] text-[#5C5852] dark:text-[#9E9990] font-semibold mt-0.5 block"></span>
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Kan Grubu</label>
-              <select id="profInputBlood" class="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg font-medium text-slate-800 dark:text-white">
+              <label class="block text-[11px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-1">Kan Grubu</label>
+              <select id="profInputBlood" class="w-full px-3 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card font-medium text-[#1C1B19] dark:text-[#ECEAE4]">
                 <option value="">Bilinmiyor</option>
                 <option value="A Rh+">A Rh(+)</option>
                 <option value="A Rh-">A Rh(-)</option>
@@ -377,26 +460,26 @@
           </div>
 
           <div>
-            <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Servis / Ulaşım Bilgisi</label>
-            <input type="text" id="profInputBus" placeholder="Örn: 24 Nolu Servis (Şoför: Ahmet Bey 0505...)" class="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white">
+            <label class="block text-[11px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-1">Servis / Ulaşım Bilgisi</label>
+            <input type="text" id="profInputBus" placeholder="Örn: 24 Nolu Servis (Şoför: Ahmet Bey 0505...)" class="w-full px-3 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
           </div>
         </div>
 
         <!-- 2. VELİ -->
         <div id="pTabContentVeli" class="hidden space-y-3">
-          <div class="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2">
-            <div class="flex items-center justify-between pb-1 border-b border-slate-200 dark:border-slate-700">
-              <span class="text-xs font-bold text-indigo-700 dark:text-indigo-400">1. Birincil Veli İletişimi</span>
-              <span class="text-[10px] text-slate-400">Ana listede görünür</span>
+          <div class="p-3 bg-[#F5F3EF] dark:bg-[#252320] border border-[#DCD8D0] dark:border-[#33302B] sharp-card space-y-2">
+            <div class="flex items-center justify-between pb-1 border-b border-[#E5E1D8] dark:border-[#33302B]">
+              <span class="text-xs font-bold text-[#1C1B19] dark:text-[#ECEAE4]">1. Birincil Veli İletişimi</span>
+              <span class="text-[10px] text-[#6E6960] dark:text-[#9E9990]">Ana listede görünür</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
-                <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Veli Adı Soyadı</label>
-                <input type="text" id="profInputP1Name" placeholder="Örn: Ayşe Kaya" class="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white">
+                <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Veli Adı Soyadı</label>
+                <input type="text" id="profInputP1Name" placeholder="Örn: Ayşe Kaya" class="w-full px-2.5 py-1.5 text-xs bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
               </div>
               <div>
-                <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Yakınlık Derecesi</label>
-                <select id="profInputP1Relation" class="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white">
+                <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Yakınlık Derecesi</label>
+                <select id="profInputP1Relation" class="w-full px-2.5 py-1.5 text-xs bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
                   <option value="Anne">Anne</option>
                   <option value="Baba">Baba</option>
                   <option value="Vasi">Vasi</option>
@@ -406,28 +489,28 @@
                 </select>
               </div>
               <div>
-                <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Telefon Numarası</label>
+                <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Telefon Numarası</label>
                 <div class="flex items-center gap-1">
-                  <input type="tel" id="profInputP1Phone" placeholder="05XX..." class="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white font-mono">
-                  <button type="button" onclick="triggerDirectCall(1)" class="px-2 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold shrink-0">Ara</button>
-                  <button type="button" onclick="triggerWhatsApp(1)" class="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shrink-0">WA</button>
+                  <input type="tel" id="profInputP1Phone" placeholder="05XX..." class="w-full px-2.5 py-1.5 text-xs bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4] font-mono">
+                  <button type="button" onclick="triggerDirectCall(1)" class="px-2 py-1.5 border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#1C1B19] text-[#1C1B19] dark:text-[#ECEAE4] sharp-btn text-xs font-semibold shrink-0">Ara</button>
+                  <button type="button" onclick="triggerWhatsApp(1)" class="px-2 py-1.5 bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715] sharp-btn text-xs font-bold shrink-0">WA</button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2">
-            <div class="pb-1 border-b border-slate-200 dark:border-slate-700">
-              <span class="text-xs font-bold text-slate-700 dark:text-slate-300">2. İkincil Veli / Acil Durum</span>
+          <div class="p-3 bg-[#F5F3EF] dark:bg-[#252320] border border-[#DCD8D0] dark:border-[#33302B] sharp-card space-y-2">
+            <div class="pb-1 border-b border-[#E5E1D8] dark:border-[#33302B]">
+              <span class="text-xs font-bold text-[#262421] dark:text-[#E6E2D8]">2. İkincil Veli / Acil Durum</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
-                <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Veli Adı Soyadı</label>
-                <input type="text" id="profInputP2Name" placeholder="Örn: Ali Kaya" class="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white">
+                <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Veli Adı Soyadı</label>
+                <input type="text" id="profInputP2Name" placeholder="Örn: Ali Kaya" class="w-full px-2.5 py-1.5 text-xs bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
               </div>
               <div>
-                <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Yakınlık Derecesi</label>
-                <select id="profInputP2Relation" class="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white">
+                <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Yakınlık Derecesi</label>
+                <select id="profInputP2Relation" class="w-full px-2.5 py-1.5 text-xs bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
                   <option value="Baba">Baba</option>
                   <option value="Anne">Anne</option>
                   <option value="Vasi">Vasi</option>
@@ -437,59 +520,59 @@
                 </select>
               </div>
               <div>
-                <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Telefon Numarası</label>
+                <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Telefon Numarası</label>
                 <div class="flex items-center gap-1">
-                  <input type="tel" id="profInputP2Phone" placeholder="05XX..." class="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white font-mono">
-                  <button type="button" onclick="triggerDirectCall(2)" class="px-2 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold shrink-0">Ara</button>
-                  <button type="button" onclick="triggerWhatsApp(2)" class="px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shrink-0">WA</button>
+                  <input type="tel" id="profInputP2Phone" placeholder="05XX..." class="w-full px-2.5 py-1.5 text-xs bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4] font-mono">
+                  <button type="button" onclick="triggerDirectCall(2)" class="px-2 py-1.5 border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#1C1B19] text-[#1C1B19] dark:text-[#ECEAE4] sharp-btn text-xs font-semibold shrink-0">Ara</button>
+                  <button type="button" onclick="triggerWhatsApp(2)" class="px-2 py-1.5 bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715] sharp-btn text-xs font-bold shrink-0">WA</button>
                 </div>
               </div>
             </div>
           </div>
 
           <div>
-            <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Ev / İkametgah Adresi</label>
-            <textarea id="profInputAddress" rows="2" placeholder="Mahalle, Cadde, Apartman, Daire no..." class="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white"></textarea>
+            <label class="block text-[11px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-1">Ev / İkametgah Adresi</label>
+            <textarea id="profInputAddress" rows="2" placeholder="Mahalle, Cadde, Apartman, Daire no..." class="w-full px-3 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]"></textarea>
           </div>
         </div>
 
         <!-- 3. SAĞLIK & REHBERLİK -->
         <div id="pTabContentSaglik" class="hidden space-y-3">
-          <div class="p-3 bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 rounded-lg space-y-1">
-            <span class="text-xs font-bold text-rose-700 dark:text-rose-400 block">Alerji, İlaç veya Kronik Rahatsızlık Uyarısı</span>
-            <p class="text-[10px] text-slate-500 dark:text-slate-400">Buraya bilgi girilirse ana listede öğrencinin yanında sağlık uyarısı gösterilir.</p>
-            <input type="text" id="profInputAllergies" placeholder="Örn: Fıstık alerjisi var, astım ilacı kullanıyor..." class="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-800 rounded-lg text-slate-800 dark:text-white">
+          <div class="p-3 bg-[#F5F3EF] dark:bg-[#252320] border-l-4 border-l-[#262421] dark:border-l-[#E6E2D8] border border-[#D4CFC4] dark:border-[#38352F] sharp-card space-y-1">
+            <span class="text-xs font-bold text-[#1C1B19] dark:text-[#ECEAE4] block">Alerji, İlaç veya Kronik Rahatsızlık Uyarısı</span>
+            <p class="text-[10px] text-[#6E6960] dark:text-[#9E9990]">Buraya bilgi girilirse ana listede öğrencinin yanında sağlık uyarısı gösterilir.</p>
+            <input type="text" id="profInputAllergies" placeholder="Örn: Fıstık alerjisi var, astım ilacı kullanıyor..." class="w-full px-3 py-1.5 text-xs bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
           </div>
 
           <div>
-            <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">Rehberlik &amp; Öğretmen Gözlem Notları</label>
-            <textarea id="profInputGuidance" rows="3" placeholder="Öğrencinin derse ilgisi, arkadaş ilişkileri, güçlü yönleri ve rehberlik takibi..." class="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white"></textarea>
+            <label class="block text-[11px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-1">Rehberlik &amp; Öğretmen Gözlem Notları</label>
+            <textarea id="profInputGuidance" rows="3" placeholder="Öğrencinin derse ilgisi, arkadaş ilişkileri, güçlü yönleri ve rehberlik takibi..." class="w-full px-3 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]"></textarea>
           </div>
 
           <div>
-            <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">İlgi Alanları, Hobiler ve Özel Yetenekler</label>
-            <input type="text" id="profInputHobbies" placeholder="Örn: Resim, satranç, piyano, spor..." class="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white">
+            <label class="block text-[11px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-1">İlgi Alanları, Hobiler ve Özel Yetenekler</label>
+            <input type="text" id="profInputHobbies" placeholder="Örn: Resim, satranç, piyano, spor..." class="w-full px-3 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
           </div>
         </div>
 
         <!-- 4. YILDIZ & GÖREVLER -->
         <div id="pTabContentGorev" class="hidden space-y-3">
-          <div class="p-3 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg flex items-center justify-between gap-2">
+          <div class="p-3 bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card flex items-center justify-between gap-2">
             <div>
-              <span class="text-xs font-bold text-amber-800 dark:text-amber-300">Mevcut Toplam Yıldız</span>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400">Ders içi etkinlik ve görev puanları</p>
+              <span class="text-xs font-bold text-[#1C1B19] dark:text-[#ECEAE4]">Mevcut Toplam Yıldız</span>
+              <p class="text-[11px] text-[#6E6960] dark:text-[#9E9990]">Ders içi etkinlik ve görev puanları</p>
             </div>
             <div class="flex items-center gap-2">
-              <span id="profModalStarBadge" class="text-lg font-bold text-amber-600 dark:text-amber-400 font-mono">0 ★</span>
-              <button type="button" onclick="addStarFromProfile()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg">+1</button>
-              <button type="button" onclick="removeStarFromProfile()" class="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-lg hover:text-rose-600">-1</button>
+              <span id="profModalStarBadge" class="text-lg font-bold text-[#1C1B19] dark:text-[#ECEAE4] font-mono">0 ★</span>
+              <button type="button" onclick="addStarFromProfile()" class="px-2.5 py-1 bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715] font-bold text-xs sharp-btn">+1</button>
+              <button type="button" onclick="removeStarFromProfile()" class="px-2.5 py-1 border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#1C1B19] text-[#262421] dark:text-[#E6E2D8] font-bold text-xs sharp-btn">-1</button>
             </div>
           </div>
 
-          <div class="border-t border-slate-200 dark:border-slate-800 pt-3">
+          <div class="border-t border-[#E5E1D8] dark:border-[#2E2C27] pt-3">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Öğrencinin Kayıtlı Not ve Görevleri</span>
-              <button type="button" onclick="openNoteModalFromProfile()" class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Not Yönetimine Git</button>
+              <span class="text-xs font-semibold text-[#4A4640] dark:text-[#C4BFB4]">Öğrencinin Kayıtlı Not ve Görevleri</span>
+              <button type="button" onclick="openNoteModalFromProfile()" class="text-xs text-[#1C1B19] dark:text-[#ECEAE4] font-bold underline">Not Yönetimine Git</button>
             </div>
             <div id="profNotesMiniList" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
           </div>
@@ -498,11 +581,11 @@
       </div>
 
       <!-- Alt Çubuk -->
-      <div class="pt-3 border-t border-slate-200 dark:border-slate-800 mt-3 flex items-center justify-between gap-2 shrink-0 flex-wrap">
+      <div class="pt-3 border-t border-[#E5E1D8] dark:border-[#2E2C27] mt-3 flex items-center justify-between gap-2 shrink-0 flex-wrap">
         <button
           type="button"
           onclick="deleteCurrentProfileStudent()"
-          class="px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
+          class="px-3 py-2 text-xs font-semibold text-red-700 dark:text-red-400 hover:bg-[#EFECE6] dark:hover:bg-[#252320] sharp-btn"
         >
           Öğrenciyi Sınıftan Sil
         </button>
@@ -511,14 +594,14 @@
           <button
             type="button"
             onclick="saveStudentProfile()"
-            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg transition"
+            class="px-4 py-2 bg-[#262421] hover:bg-[#3A3732] dark:bg-[#E6E2D8] dark:hover:bg-[#D4CFC3] text-[#FAF9F6] dark:text-[#181715] font-bold text-xs sharp-btn"
           >
             Profili Kaydet
           </button>
           <button
             type="button"
             onclick="closeProfileModal()"
-            class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            class="px-4 py-2 border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#252320] text-[#4A4640] dark:text-[#C4BFB4] text-xs font-semibold sharp-btn"
           >
             Kapat
           </button>
@@ -531,23 +614,23 @@
   <!-- ======================================================== -->
   <!-- MODAL: ÖĞRENCİ NOTLARI & GÖREVLER -->
   <!-- ======================================================== -->
-  <div id="noteModal" data-modal="true" class="hidden fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 no-print">
-    <div class="bg-white dark:bg-slate-900 rounded-xl max-w-xl w-full p-5 shadow-xl border border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
+  <div id="noteModal" data-modal="true" class="hidden fixed inset-0 bg-[#141312]/70 z-50 flex items-center justify-center p-3 no-print">
+    <div class="bg-[#FAF9F6] dark:bg-[#1C1B19] sharp-card max-w-xl w-full p-5 shadow-2xl border border-[#D4CFC4] dark:border-[#33302B] max-h-[90vh] flex flex-col">
 
-      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-3 shrink-0">
+      <div class="flex items-center justify-between pb-3 border-b border-[#E5E1D8] dark:border-[#2E2C27] mb-3 shrink-0">
         <div>
-          <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white" id="noteModalStudentName">Öğrenci Notları</h3>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">Ödev takibi, veli görüşmeleri ve davranış kayıtları</p>
+          <h3 class="text-sm sm:text-base font-bold text-[#1C1B19] dark:text-[#ECEAE4]" id="noteModalStudentName">Öğrenci Notları</h3>
+          <p class="text-[11px] text-[#6E6960] dark:text-[#9E9990]">Ödev takibi, veli görüşmeleri ve davranış kayıtları</p>
         </div>
-        <button type="button" onclick="closeNoteModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-base px-1">✕</button>
+        <button type="button" onclick="closeNoteModal()" class="text-[#6E6960] hover:text-[#1C1B19] dark:text-[#9E9990] dark:hover:text-[#ECEAE4] font-bold text-base px-1">✕</button>
       </div>
 
       <!-- Yeni Not Formu -->
-      <div class="mb-3 p-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 sharp-card shrink-0 space-y-2">
+      <div class="mb-3 p-3 bg-[#F5F3EF] dark:bg-[#252320] border border-[#DCD8D0] dark:border-[#33302B] sharp-card shrink-0 space-y-2">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div>
-            <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Kategori</label>
-            <select id="newNoteCategorySelect" class="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 sharp-card text-slate-800 dark:text-white">
+            <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Kategori</label>
+            <select id="newNoteCategorySelect" class="w-full px-2 py-1.5 text-xs bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
               <option value="homework">Ödev &amp; Görev</option>
               <option value="parent">Veli İletişimi</option>
               <option value="behavior">Davranış &amp; Disiplin</option>
@@ -557,31 +640,31 @@
             </select>
           </div>
           <div>
-            <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Öncelik</label>
-            <select id="newNotePrioritySelect" class="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 sharp-card text-slate-800 dark:text-white">
+            <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Öncelik</label>
+            <select id="newNotePrioritySelect" class="w-full px-2 py-1.5 text-xs bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
               <option value="high">Yüksek / Acil</option>
               <option value="normal" selected>Normal</option>
               <option value="low">Düşük</option>
             </select>
           </div>
           <div>
-            <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Son Tarih</label>
-            <input type="date" id="newNoteDueDateInput" class="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 sharp-card text-slate-800 dark:text-white">
+            <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Son Tarih</label>
+            <input type="date" id="newNoteDueDateInput" class="w-full px-2 py-1.5 text-xs bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
           </div>
         </div>
 
-        <input type="text" id="newNoteTitleInput" placeholder="Başlık (Örn: Ünite 4 Kelime Listesi)" class="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 sharp-card font-semibold text-slate-800 dark:text-white">
-        <textarea id="newNoteTextInput" rows="2" placeholder="Açıklama veya gözlem notu..." class="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 sharp-card text-slate-800 dark:text-white"></textarea>
+        <input type="text" id="newNoteTitleInput" placeholder="Başlık (Örn: Ünite 4 Kelime Listesi)" class="w-full px-2.5 py-1.5 text-xs bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] sharp-card font-semibold text-[#1C1B19] dark:text-[#ECEAE4]">
+        <textarea id="newNoteTextInput" rows="2" placeholder="Açıklama veya gözlem notu..." class="w-full px-2.5 py-1.5 text-xs bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]"></textarea>
 
         <div class="flex items-center justify-between gap-2 flex-wrap">
-          <label class="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-            <input type="checkbox" id="newNoteAwardStarCheck" class="w-3.5 h-3.5 rounded">
+          <label class="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#4A4640] dark:text-[#C4BFB4] cursor-pointer">
+            <input type="checkbox" id="newNoteAwardStarCheck" class="w-3.5 h-3.5 accent-[#262421] dark:accent-[#E6E2D8]">
             <span>Tamamlanınca otomatik +1 Yıldız ekle</span>
           </label>
           <button
             type="button"
             onclick="addStudentNote()"
-            class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 font-semibold text-xs sharp-btn"
+            class="px-4 py-1.5 bg-[#262421] hover:bg-[#3A3732] dark:bg-[#E6E2D8] dark:hover:bg-[#D4CFC3] text-[#FAF9F6] dark:text-[#181715] font-bold text-xs sharp-btn"
           >
             Notu Kaydet
           </button>
@@ -589,20 +672,20 @@
       </div>
 
       <!-- Filtreler -->
-      <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-800 text-[11px] font-semibold shrink-0">
+      <div class="flex items-center justify-between pb-2 mb-2 border-b border-[#E5E1D8] dark:border-[#2E2C27] text-[11px] font-semibold shrink-0">
         <div class="flex items-center gap-1">
-          <button id="noteFilterAll" type="button" onclick="setNoteFilter('all')" class="px-2.5 py-1 bg-slate-800 text-white sharp-card">Tümü</button>
-          <button id="noteFilterPending" type="button" onclick="setNoteFilter('pending')" class="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 sharp-card">Bekleyenler</button>
-          <button id="noteFilterDone" type="button" onclick="setNoteFilter('done')" class="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 sharp-card">Tamamlananlar</button>
+          <button id="noteFilterAll" type="button" onclick="setNoteFilter('all')" class="px-2.5 py-1 bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715] sharp-btn">Tümü</button>
+          <button id="noteFilterPending" type="button" onclick="setNoteFilter('pending')" class="px-2.5 py-1 bg-[#EFECE6] dark:bg-[#252320] text-[#4A4640] dark:text-[#C4BFB4] sharp-btn">Bekleyenler</button>
+          <button id="noteFilterDone" type="button" onclick="setNoteFilter('done')" class="px-2.5 py-1 bg-[#EFECE6] dark:bg-[#252320] text-[#4A4640] dark:text-[#C4BFB4] sharp-btn">Tamamlananlar</button>
         </div>
-        <span id="noteCountsDisplay" class="text-slate-500 font-mono">0 Not</span>
+        <span id="noteCountsDisplay" class="text-[#6E6960] dark:text-[#9E9990] font-mono">0 Not</span>
       </div>
 
       <!-- Liste -->
       <div class="flex-1 overflow-y-auto space-y-2 pr-1" id="notesListContainer"></div>
 
-      <div class="pt-2 border-t border-slate-200 dark:border-slate-800 mt-2 flex justify-end shrink-0">
-        <button type="button" onclick="closeNoteModal()" class="py-1.5 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 sharp-btn">
+      <div class="pt-2 border-t border-[#E5E1D8] dark:border-[#2E2C27] mt-2 flex justify-end shrink-0">
+        <button type="button" onclick="closeNoteModal()" class="py-1.5 px-4 text-xs font-semibold text-[#4A4640] dark:text-[#C4BFB4] border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#252320] sharp-btn">
           Kapat
         </button>
       </div>
@@ -612,28 +695,28 @@
   <!-- ======================================================== -->
   <!-- MODAL: TOPLU GÖREV & ÖDEV DAĞITIMI -->
   <!-- ======================================================== -->
-  <div id="bulkTaskModal" data-modal="true" class="hidden fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 no-print">
-    <div class="bg-white dark:bg-slate-900 rounded-xl max-w-2xl w-full p-5 shadow-xl border border-slate-200 dark:border-slate-800 max-h-[92vh] flex flex-col">
+  <div id="bulkTaskModal" data-modal="true" class="hidden fixed inset-0 bg-[#141312]/70 z-50 flex items-center justify-center p-3 no-print">
+    <div class="bg-[#FAF9F6] dark:bg-[#1C1B19] sharp-card max-w-2xl w-full p-5 shadow-2xl border border-[#D4CFC4] dark:border-[#33302B] max-h-[92vh] flex flex-col">
 
-      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-3 shrink-0">
+      <div class="flex items-center justify-between pb-3 border-b border-[#E5E1D8] dark:border-[#2E2C27] mb-3 shrink-0">
         <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white">Toplu Görev &amp; Ödev Yönetimi</h3>
-          <p id="bulkModalClassTag" class="text-[11px] font-semibold text-blue-600 dark:text-blue-400">Aktif Sınıf: -</p>
+          <h3 class="text-base font-bold text-[#1C1B19] dark:text-[#ECEAE4]">Toplu Görev &amp; Ödev Yönetimi</h3>
+          <p id="bulkModalClassTag" class="text-[11px] font-semibold text-[#6E6960] dark:text-[#9E9990]">Aktif Sınıf: -</p>
         </div>
-        <button type="button" onclick="closeBulkTaskModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-base px-1">✕</button>
+        <button type="button" onclick="closeBulkTaskModal()" class="text-[#6E6960] hover:text-[#1C1B19] dark:text-[#9E9990] dark:hover:text-[#ECEAE4] font-bold text-base px-1">✕</button>
       </div>
 
-      <div class="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 mb-3 shrink-0 text-xs font-semibold">
-        <button id="bulkTabBtnNew" type="button" onclick="setBulkTab('new')" class="px-3 py-1.5 bg-blue-600 text-white sharp-card">Yeni Görev Dağıt</button>
-        <button id="bulkTabBtnList" type="button" onclick="setBulkTab('list')" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 sharp-card">Aktif Sınıf Görevleri</button>
+      <div class="flex items-center gap-1.5 border-b border-[#E5E1D8] dark:border-[#2E2C27] pb-2 mb-3 shrink-0 text-xs font-semibold">
+        <button id="bulkTabBtnNew" type="button" onclick="setBulkTab('new')" class="px-3 py-1.5 bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715] sharp-btn">Yeni Görev Dağıt</button>
+        <button id="bulkTabBtnList" type="button" onclick="setBulkTab('list')" class="px-3 py-1.5 bg-[#EFECE6] dark:bg-[#252320] text-[#4A4640] dark:text-[#C4BFB4] sharp-btn">Aktif Sınıf Görevleri</button>
       </div>
 
       <!-- Yeni Görev -->
       <div id="bulkTabContentNew" class="flex-1 overflow-y-auto space-y-3 pr-1">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div>
-            <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Kategori</label>
-            <select id="bulkCategorySelect" class="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 sharp-card text-slate-800 dark:text-white">
+            <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Kategori</label>
+            <select id="bulkCategorySelect" class="w-full px-2.5 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
               <option value="homework">Ders Ödevi</option>
               <option value="reading">Kitap Okuma</option>
               <option value="project">Proje &amp; Etkinlik</option>
@@ -642,38 +725,38 @@
             </select>
           </div>
           <div>
-            <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Öncelik</label>
-            <select id="bulkPrioritySelect" class="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 sharp-card text-slate-800 dark:text-white">
+            <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Öncelik</label>
+            <select id="bulkPrioritySelect" class="w-full px-2.5 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
               <option value="high">Yüksek</option>
               <option value="normal" selected>Normal</option>
               <option value="low">Düşük</option>
             </select>
           </div>
           <div>
-            <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Son Teslim Tarihi</label>
-            <input type="date" id="bulkDueDateInput" class="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 sharp-card text-slate-800 dark:text-white">
+            <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Son Teslim Tarihi</label>
+            <input type="date" id="bulkDueDateInput" class="w-full px-2.5 py-1.5 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]">
           </div>
         </div>
 
         <div>
-          <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Ödev / Görev Başlığı</label>
-          <input type="text" id="bulkTitleInput" placeholder="Örn: Çalışma Kitabı Sayfa 45-48" class="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 sharp-card font-semibold text-slate-800 dark:text-white">
+          <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Ödev / Görev Başlığı</label>
+          <input type="text" id="bulkTitleInput" placeholder="Örn: Çalışma Kitabı Sayfa 45-48" class="w-full px-3 py-2 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card font-semibold text-[#1C1B19] dark:text-[#ECEAE4]">
         </div>
 
         <div>
-          <label class="block text-[10px] font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Açıklama &amp; Yönergeler</label>
-          <textarea id="bulkTextInput" rows="3" placeholder="Görev detayları..." class="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 sharp-card text-slate-800 dark:text-white"></textarea>
+          <label class="block text-[10px] font-semibold text-[#5C5852] dark:text-[#9E9990] mb-0.5">Açıklama &amp; Yönergeler</label>
+          <textarea id="bulkTextInput" rows="3" placeholder="Görev detayları..." class="w-full px-3 py-2 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card text-[#1C1B19] dark:text-[#ECEAE4]"></textarea>
         </div>
 
-        <label class="flex items-center gap-2 p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 sharp-card cursor-pointer">
-          <input type="checkbox" id="bulkAwardStarCheck" class="w-4 h-4 rounded">
-          <span class="text-xs font-semibold text-amber-900 dark:text-amber-300">Görevi tamamlayan öğrencilere otomatik +1 Yıldız eklensin</span>
+        <label class="flex items-center gap-2 p-2.5 bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] sharp-card cursor-pointer">
+          <input type="checkbox" id="bulkAwardStarCheck" class="w-4 h-4 accent-[#262421] dark:accent-[#E6E2D8]">
+          <span class="text-xs font-semibold text-[#262421] dark:text-[#E6E2D8]">Görevi tamamlayan öğrencilere otomatik +1 Yıldız eklensin</span>
         </label>
 
         <button
           type="button"
           onclick="assignBulkTaskToClass()"
-          class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sharp-btn transition"
+          class="w-full py-2.5 bg-[#262421] hover:bg-[#3A3732] dark:bg-[#E6E2D8] dark:hover:bg-[#D4CFC3] text-[#FAF9F6] dark:text-[#181715] font-bold text-xs sharp-btn"
         >
           <span id="bulkAssignBtnLabel">Tüm Sınıfa Görevi Dağıt</span>
         </button>
@@ -684,8 +767,8 @@
         <div id="bulkTasksListContainer" class="space-y-3"></div>
       </div>
 
-      <div class="pt-2 border-t border-slate-200 dark:border-slate-800 mt-2 flex justify-end shrink-0">
-        <button type="button" onclick="closeBulkTaskModal()" class="py-1.5 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 sharp-btn">
+      <div class="pt-2 border-t border-[#E5E1D8] dark:border-[#2E2C27] mt-2 flex justify-end shrink-0">
+        <button type="button" onclick="closeBulkTaskModal()" class="py-1.5 px-4 text-xs font-semibold text-[#4A4640] dark:text-[#C4BFB4] border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#252320] sharp-btn">
           Kapat
         </button>
       </div>
@@ -693,59 +776,59 @@
   </div>
 
   <!-- ======================================================== -->
-  <!-- MODAL: SINIF EKLE & YÖNET (VERİ KAYBINA KARŞI GÜVENLİ) -->
+  <!-- MODAL: SINIF EKLE & YÖNET -->
   <!-- ======================================================== -->
-  <div id="classModal" data-modal="true" class="hidden fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 no-print">
-    <div class="bg-white dark:bg-slate-900 rounded-xl max-w-lg w-full p-5 shadow-xl border border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-3 shrink-0">
-        <h3 class="text-base font-bold text-slate-900 dark:text-white" id="classModalTitle">Sınıfları Yönet</h3>
-        <button type="button" onclick="closeClassModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-sm">✕</button>
+  <div id="classModal" data-modal="true" class="hidden fixed inset-0 bg-[#141312]/70 z-50 flex items-center justify-center p-3 no-print">
+    <div class="bg-[#FAF9F6] dark:bg-[#1C1B19] sharp-card max-w-lg w-full p-5 shadow-2xl border border-[#D4CFC4] dark:border-[#33302B] max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-[#E5E1D8] dark:border-[#2E2C27] mb-3 shrink-0">
+        <h3 class="text-base font-bold text-[#1C1B19] dark:text-[#ECEAE4]" id="classModalTitle">Yeni Sınıf Oluştur / Yönet</h3>
+        <button type="button" onclick="closeClassModal()" class="text-[#6E6960] hover:text-[#1C1B19] dark:text-[#9E9990] dark:hover:text-[#ECEAE4] font-bold text-sm">✕</button>
       </div>
 
       <div class="space-y-3 flex-1 overflow-y-auto pr-1">
         <div>
-          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Sınıf Adı</label>
+          <label class="block text-xs font-semibold text-[#4A4640] dark:text-[#C4BFB4] mb-1">Sınıf Adı</label>
           <input
             type="text"
             id="newClassNameInput"
             placeholder="Örn: 3-A, 4-B, Starters..."
-            class="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="w-full px-3 py-2 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] text-[#1C1B19] dark:text-[#ECEAE4] sharp-card font-semibold focus:outline-none focus:border-[#262421] dark:focus:border-[#E6E2D8]"
           >
         </div>
 
         <div>
-          <label id="classStudentsLabel" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            Öğrenci İsimleri <span class="text-slate-400 font-normal text-[11px]">(Her satıra bir isim veya virgülle)</span>
+          <label id="classStudentsLabel" class="block text-xs font-semibold text-[#4A4640] dark:text-[#C4BFB4] mb-1">
+            Öğrenci İsimleri <span class="text-[#8C867B] font-normal text-[11px]">(Her satıra bir isim veya virgülle)</span>
           </label>
           <textarea
             id="newClassStudentsInput"
             rows="5"
             placeholder="Ahmet Yılmaz&#10;Ayşe Kaya&#10;Mehmet Demir"
-            class="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="w-full px-3 py-2 text-xs bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#38352F] text-[#1C1B19] dark:text-[#ECEAE4] sharp-card font-mono focus:outline-none focus:border-[#262421] dark:focus:border-[#E6E2D8]"
           ></textarea>
-          <p id="editClassHint" class="hidden text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+          <p id="editClassHint" class="hidden text-[11px] text-[#6E6960] dark:text-[#9E9990] mt-1 leading-relaxed">
             Buraya yazdığınız isimler mevcut sınıf listesinin sonuna eklenir; mevcut öğrencilerin profil ve yıldız verileri korunur.
           </p>
         </div>
 
         <!-- Düzenleme Modunda Mevcut Öğrenciler -->
-        <div id="editExistingStudentsSection" class="hidden pt-2 border-t border-slate-200 dark:border-slate-800">
-          <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Sınıftaki Mevcut Öğrenciler:</p>
+        <div id="editExistingStudentsSection" class="hidden pt-2 border-t border-[#E5E1D8] dark:border-[#2E2C27]">
+          <p class="text-xs font-semibold text-[#4A4640] dark:text-[#C4BFB4] mb-1.5">Sınıftaki Mevcut Öğrenciler:</p>
           <div id="editExistingStudentsList" class="max-h-36 overflow-y-auto space-y-1 pr-1"></div>
         </div>
 
-        <div class="pt-2 border-t border-slate-200 dark:border-slate-800">
-          <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Kayıtlı Sınıflar:</p>
+        <div class="pt-2 border-t border-[#E5E1D8] dark:border-[#2E2C27]">
+          <p class="text-xs font-semibold text-[#4A4640] dark:text-[#C4BFB4] mb-2">Kayıtlı Sınıflar:</p>
           <div id="existingClassesList" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1"></div>
         </div>
       </div>
 
-      <div class="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-800 mt-3 shrink-0">
+      <div class="flex items-center gap-2 pt-3 border-t border-[#E5E1D8] dark:border-[#2E2C27] mt-3 shrink-0">
         <button
           id="submitClassBtn"
           type="button"
           onclick="handleClassFormSubmit()"
-          class="flex-1 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 font-semibold text-xs rounded-lg transition"
+          class="flex-1 py-2 bg-[#262421] hover:bg-[#3A3732] dark:bg-[#E6E2D8] dark:hover:bg-[#D4CFC3] text-[#FAF9F6] dark:text-[#181715] font-bold text-xs sharp-btn"
         >
           Sınıfı Oluştur
         </button>
@@ -753,14 +836,14 @@
           id="cancelEditBtn"
           type="button"
           onclick="cancelClassEdit()"
-          class="hidden py-2 px-3 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg"
+          class="hidden py-2 px-3 text-xs font-semibold text-[#4A4640] dark:text-[#C4BFB4] border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#252320] sharp-btn"
         >
           Vazgeç
         </button>
         <button
           type="button"
           onclick="closeClassModal()"
-          class="py-2 px-4 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+          class="py-2 px-4 text-xs font-semibold text-[#6E6960] dark:text-[#9E9990] hover:bg-[#EFECE6] dark:hover:bg-[#252320] sharp-btn"
         >
           Kapat
         </button>
@@ -771,21 +854,21 @@
   <!-- ======================================================== -->
   <!-- MODAL: RASTGELE GRUP OLUŞTURUCU -->
   <!-- ======================================================== -->
-  <div id="groupModal" data-modal="true" class="hidden fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 no-print">
-    <div class="bg-white dark:bg-slate-900 rounded-xl max-w-2xl w-full p-5 shadow-xl border border-slate-200 dark:border-slate-800 max-h-[88vh] flex flex-col">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-3 shrink-0">
+  <div id="groupModal" data-modal="true" class="hidden fixed inset-0 bg-[#141312]/70 z-50 flex items-center justify-center p-3 no-print">
+    <div class="bg-[#FAF9F6] dark:bg-[#1C1B19] sharp-card max-w-2xl w-full p-5 shadow-2xl border border-[#D4CFC4] dark:border-[#33302B] max-h-[88vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-[#E5E1D8] dark:border-[#2E2C27] mb-3 shrink-0">
         <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white">Rastgele Grup Oluşturucu</h3>
-          <p id="groupModalClassTag" class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Aktif Sınıf: -</p>
+          <h3 class="text-base font-bold text-[#1C1B19] dark:text-[#ECEAE4]">Rastgele Grup Oluşturucu</h3>
+          <p id="groupModalClassTag" class="text-[11px] font-semibold text-[#6E6960] dark:text-[#9E9990]">Aktif Sınıf: -</p>
         </div>
-        <button type="button" onclick="closeGroupModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-sm">✕</button>
+        <button type="button" onclick="closeGroupModal()" class="text-[#6E6960] hover:text-[#1C1B19] dark:text-[#9E9990] dark:hover:text-[#ECEAE4] font-bold text-sm">✕</button>
       </div>
 
-      <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700 mb-3 flex flex-wrap items-center justify-between gap-2 shrink-0">
+      <div class="bg-[#F5F3EF] dark:bg-[#252320] p-3 sharp-card border border-[#DCD8D0] dark:border-[#33302B] mb-3 flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div class="flex items-center gap-3 flex-wrap">
           <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Grup Boyutu:</span>
-            <select id="groupSizeSelect" onchange="generateRandomGroups()" class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white px-2 py-1 rounded-lg text-xs font-semibold">
+            <span class="text-xs font-semibold text-[#4A4640] dark:text-[#C4BFB4]">Grup Boyutu:</span>
+            <select id="groupSizeSelect" onchange="generateRandomGroups()" class="bg-[#FAF9F6] dark:bg-[#141312] border border-[#D4CFC4] dark:border-[#38352F] text-[#1C1B19] dark:text-[#ECEAE4] px-2 py-1 sharp-card text-xs font-semibold">
               <option value="2">2'şerli</option>
               <option value="3" selected>3'erli</option>
               <option value="4">4'erli</option>
@@ -793,8 +876,8 @@
               <option value="6">6'şarlı</option>
             </select>
           </div>
-          <label class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
-            <input type="checkbox" id="groupExcludeAbsentCheck" checked onchange="generateRandomGroups()" class="w-3.5 h-3.5 rounded">
+          <label class="inline-flex items-center gap-1.5 text-xs font-medium text-[#5C5852] dark:text-[#B8B2A6] cursor-pointer">
+            <input type="checkbox" id="groupExcludeAbsentCheck" checked onchange="generateRandomGroups()" class="w-3.5 h-3.5 accent-[#262421] dark:accent-[#E6E2D8]">
             <span>Yok olanları hariç tut</span>
           </label>
         </div>
@@ -802,16 +885,16 @@
         <button
           type="button"
           onclick="generateRandomGroups()"
-          class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition"
+          class="px-3.5 py-1.5 bg-[#262421] hover:bg-[#3A3732] dark:bg-[#E6E2D8] dark:hover:bg-[#D4CFC3] text-[#FAF9F6] dark:text-[#181715] sharp-btn text-xs font-bold"
         >
           Grupları Karıştır
         </button>
       </div>
 
-      <div id="groupsDisplayContainer" class="flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+      <div id="groupsDisplayContainer" class="flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5"></div>
 
-      <div class="pt-3 border-t border-slate-200 dark:border-slate-800 mt-2 flex justify-end shrink-0">
-        <button type="button" onclick="closeGroupModal()" class="py-1.5 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg">Kapat</button>
+      <div class="pt-3 border-t border-[#E5E1D8] dark:border-[#2E2C27] mt-2 flex justify-end shrink-0">
+        <button type="button" onclick="closeGroupModal()" class="py-1.5 px-4 text-xs font-semibold text-[#4A4640] dark:text-[#C4BFB4] border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#252320] sharp-btn">Kapat</button>
       </div>
     </div>
   </div>
@@ -819,12 +902,12 @@
   <!-- ======================================================== -->
   <!-- MODAL: SÖZ HAKKI ÇARKI -->
   <!-- ======================================================== -->
-  <div id="pickerModal" data-modal="true" class="hidden fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 no-print">
-    <div id="pickerContainer" class="bg-white dark:bg-slate-900 rounded-xl max-w-2xl w-full p-5 shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-y-auto">
-      <div class="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 mb-3 flex-wrap">
+  <div id="pickerModal" data-modal="true" class="hidden fixed inset-0 bg-[#141312]/70 z-50 flex items-center justify-center p-3 no-print">
+    <div id="pickerContainer" class="bg-[#FAF9F6] dark:bg-[#1C1B19] sharp-card max-w-2xl w-full p-5 shadow-2xl border border-[#D4CFC4] dark:border-[#33302B] flex flex-col max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between gap-2 border-b border-[#E5E1D8] dark:border-[#2E2C27] pb-3 mb-3 flex-wrap">
         <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white">Söz Hakkı Çarkı</h3>
-          <p id="poolStatusText" class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">Aktif Sınıf: -</p>
+          <h3 class="text-base font-bold text-[#1C1B19] dark:text-[#ECEAE4]">Söz Hakkı Çarkı</h3>
+          <p id="poolStatusText" class="text-[11px] font-semibold text-[#6E6960] dark:text-[#9E9990]">Aktif Sınıf: -</p>
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
@@ -832,21 +915,21 @@
             id="ttsVoiceToggleBtn"
             type="button"
             onclick="toggleTtsVoice()"
-            class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700"
+            class="px-2.5 py-1 sharp-btn text-xs font-semibold border transition bg-[#EFECE6] dark:bg-[#252320] text-[#4A4640] dark:text-[#C4BFB4] border-[#D4CFC4] dark:border-[#38352F]"
           >
-            Sesli Okuma: Kapalı
+            Ses: Kapalı
           </button>
 
-          <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
-            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 select-none">Eleme:</span>
+          <div class="flex items-center gap-2 bg-[#EFECE6] dark:bg-[#252320] py-1 px-2.5 sharp-card border border-[#D4CFC4] dark:border-[#38352F]">
+            <span class="text-xs font-semibold text-[#262421] dark:text-[#E6E2D8] select-none">Eleme:</span>
             <button
               id="toggleEliminationBtn"
               type="button"
               onclick="toggleEliminationMode()"
               aria-label="Eleme modunu aç veya kapat"
-              class="relative inline-flex h-5 w-9 items-center rounded-full bg-slate-300 dark:bg-slate-700 transition-colors"
+              class="relative inline-flex h-5 w-9 items-center rounded-full bg-[#C4BFB4] dark:bg-[#3A3732] transition-colors"
             >
-              <span id="toggleEliminationDot" class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform translate-x-1 shadow-sm"></span>
+              <span id="toggleEliminationDot" class="inline-block h-3.5 w-3.5 transform rounded-full bg-[#FAF9F6] transition-transform translate-x-1"></span>
             </button>
           </div>
         </div>
@@ -854,122 +937,65 @@
 
       <div class="flex flex-col md:flex-row items-center md:items-start justify-center gap-4">
         <!-- Sol: Elenenler Listesi -->
-        <div id="eliminatedSidebar" class="hidden w-full md:w-48 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 flex flex-col h-[280px] shrink-0">
-          <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-1.5 mb-2">
-            <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Seçilenler</span>
-            <button type="button" onclick="clearEliminatedList()" class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">Sıfırla</button>
+        <div id="eliminatedSidebar" class="hidden w-full md:w-48 bg-[#F5F3EF] dark:bg-[#252320] border border-[#D4CFC4] dark:border-[#33302B] sharp-card p-3 flex flex-col h-[280px] shrink-0">
+          <div class="flex items-center justify-between border-b border-[#E5E1D8] dark:border-[#33302B] pb-1.5 mb-2">
+            <span class="text-xs font-bold text-[#1C1B19] dark:text-[#ECEAE4]">Seçilenler</span>
+            <button type="button" onclick="clearEliminatedList()" class="text-[11px] font-bold text-[#4A4640] dark:text-[#C4BFB4] underline">Sıfırla</button>
           </div>
           <div id="eliminatedListContainer" class="flex-1 overflow-y-auto space-y-1 pr-1"></div>
-          <div id="eliminatedCountInfo" class="pt-1.5 text-[10px] text-center font-semibold text-slate-500 border-t border-slate-200 dark:border-slate-700">0 Seçildi</div>
+          <div id="eliminatedCountInfo" class="pt-1.5 text-[10px] text-center font-semibold text-[#6E6960] dark:text-[#9E9990] border-t border-[#E5E1D8] dark:border-[#33302B]">0 Seçildi</div>
         </div>
 
         <!-- Sağ: Çark -->
         <div class="flex flex-col items-center justify-center flex-1 w-full">
           <div class="relative w-[260px] h-[260px] sm:w-[280px] sm:h-[280px] my-1 flex items-center justify-center shrink-0">
             <div class="wheel-pointer"></div>
-            <canvas id="wheelCanvas" width="280" height="280" class="w-full h-full rounded-full shadow-md border-4 border-slate-800 dark:border-slate-700"></canvas>
-            <div class="absolute w-9 h-9 bg-white dark:bg-slate-800 rounded-full border-4 border-slate-800 dark:border-slate-700 shadow flex items-center justify-center font-bold text-xs text-slate-800 dark:text-white pointer-events-none">★</div>
+            <canvas id="wheelCanvas" width="280" height="280" class="w-full h-full rounded-full border-4 border-[#262421] dark:border-[#E6E2D8]"></canvas>
+            <div class="absolute w-9 h-9 bg-[#FAF9F6] dark:bg-[#1C1B19] rounded-full border-4 border-[#262421] dark:border-[#E6E2D8] flex items-center justify-center font-bold text-xs text-[#1C1B19] dark:text-[#ECEAE4] pointer-events-none">★</div>
           </div>
 
-          <div class="w-full bg-slate-900 rounded-lg px-3 py-2.5 my-2 border border-slate-700 flex items-center justify-between gap-2 min-h-[46px]">
-            <div id="pickerNameDisplay" class="text-sm font-bold text-amber-300 tracking-wide">Çevirmeye Hazır</div>
+          <div class="w-full bg-[#262421] dark:bg-[#141312] sharp-card px-3 py-2.5 my-2 border border-[#3A3732] flex items-center justify-between gap-2 min-h-[46px]">
+            <div id="pickerNameDisplay" class="text-sm font-bold text-[#FAF9F6] tracking-wide">Çevirmeye Hazır</div>
             <button
               id="pickerAwardStarBtn"
               type="button"
               onclick="awardStarToWheelWinner()"
-              class="hidden px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-md shrink-0 transition"
+              class="hidden px-2.5 py-1 bg-[#FAF9F6] hover:bg-[#EFECE6] text-[#1C1B19] text-xs font-bold sharp-btn shrink-0"
             >
               +1 Yıldız Ver
             </button>
           </div>
 
           <div class="flex items-center gap-2 w-full mt-1">
-            <button id="spinBtn" type="button" onclick="spinAnimatedWheel()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg transition disabled:opacity-50">
+            <button id="spinBtn" type="button" onclick="spinAnimatedWheel()" class="flex-1 py-2.5 bg-[#262421] hover:bg-[#3A3732] dark:bg-[#E6E2D8] dark:hover:bg-[#D4CFC3] text-[#FAF9F6] dark:text-[#181715] font-bold text-xs sharp-btn disabled:opacity-40">
               Çarkı Çevir
             </button>
-            <button type="button" onclick="closePickerModal()" class="py-2.5 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg">Kapat</button>
+            <button type="button" onclick="closePickerModal()" class="py-2.5 px-4 text-xs font-semibold text-[#4A4640] dark:text-[#C4BFB4] border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#252320] sharp-btn">Kapat</button>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ======================================================== -->
-  <!-- MODAL: YEDEKLEME & GERİ YÜKLEME (JSON) -->
-  <!-- ======================================================== -->
-  <div id="backupModal" data-modal="true" class="hidden fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 no-print">
-    <div class="bg-white dark:bg-slate-900 rounded-xl max-w-lg w-full p-5 shadow-xl border border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-3 shrink-0">
-        <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white">Veri Yedekleme &amp; Geri Yükleme</h3>
-          <p id="backupStatsText" class="text-[11px] text-slate-500 dark:text-slate-400">Tüm sınıf, öğrenci, yıldız ve görev verileri</p>
-        </div>
-        <button type="button" onclick="closeBackupModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold text-sm">✕</button>
-      </div>
-
-      <div class="space-y-4 flex-1 overflow-y-auto pr-1">
-        <!-- Dışa Aktar -->
-        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2">
-          <h4 class="text-xs font-bold text-slate-800 dark:text-white">1. Yedek Al (Dışa Aktar)</h4>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">Telefon değişikliği veya güncelleme öncesi verilerinizi JSON dosyası olarak saklayın.</p>
-          <div class="flex items-center gap-2 flex-wrap">
-            <button type="button" onclick="exportBackupJson()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition">
-              JSON Dosyası İndir / Paylaş
-            </button>
-            <button type="button" onclick="copyBackupToClipboard()" class="px-3 py-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 text-xs font-semibold rounded-lg transition">
-              Panoya Kopyala
-            </button>
-          </div>
-        </div>
-
-        <!-- İçe Aktar -->
-        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2.5">
-          <h4 class="text-xs font-bold text-slate-800 dark:text-white">2. Yedekten Geri Yükle (İçe Aktar)</h4>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">Daha önce aldığınız `.json` dosyasını seçin veya yedek metnini aşağıya yapıştırın.</p>
-
-          <div>
-            <input type="file" id="backupFileInput" accept=".json,application/json" onchange="handleBackupFileSelect(event)" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-white dark:file:bg-slate-700 cursor-pointer">
-          </div>
-
-          <div class="pt-2 border-t border-slate-200 dark:border-slate-700">
-            <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Veya JSON Metni Yapıştır:</label>
-            <textarea id="backupPasteInput" rows="3" placeholder='{"classData": {...}, "bulkTasksData": {...}}' class="w-full px-2.5 py-1.5 text-[11px] font-mono bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-white"></textarea>
-            <button type="button" onclick="importBackupFromText()" class="mt-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition">
-              Metinden Geri Yükle
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="pt-3 border-t border-slate-200 dark:border-slate-800 mt-3 flex justify-end shrink-0">
-        <button type="button" onclick="closeBackupModal()" class="py-1.5 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg">Kapat</button>
       </div>
     </div>
   </div>
 
   <!-- A4 YAZDIRMA & PDF ŞABLONU -->
-  <div id="printReportContainer" class="hidden bg-white text-black p-8 max-w-4xl mx-auto font-sans">
+  <div id="printReportContainer" class="hidden bg-white text-[#1C1B19] p-8 max-w-4xl mx-auto font-sans">
     <div id="printReportInnerContent"></div>
   </div>
 
   <script>
     // =========================================================================
-    // YARDIMCI FONKSİYONLAR & GÜVENLİK
+    // YARDIMCI FONKSİYONLAR & SICAK MONOKROM PALET
     // =========================================================================
     const STORAGE_KEY = 'classroom_star_tracker_data';
     const BULK_TASKS_KEY = 'classroom_bulk_tasks_data';
     const SORT_KEY = 'classroom_sort_preference';
     const MODE_KEY = 'classroom_view_mode';
 
-    const BADGE_COLORS = [
-      { id: 'indigo', cls: 'bg-indigo-600 text-white', label: 'Lacivert' },
-      { id: 'slate', cls: 'bg-slate-700 text-white', label: 'Antrasit' },
-      { id: 'emerald', cls: 'bg-emerald-600 text-white', label: 'Zümrüt' },
-      { id: 'amber', cls: 'bg-amber-600 text-white', label: 'Kehribar' },
-      { id: 'rose', cls: 'bg-rose-600 text-white', label: 'Bordo' },
-      { id: 'sky', cls: 'bg-sky-600 text-white', label: 'Mavi' },
-      { id: 'teal', cls: 'bg-teal-600 text-white', label: 'Turkuaz' },
-      { id: 'violet', cls: 'bg-violet-600 text-white', label: 'Mor' }
+    const BADGE_TONES = [
+      { id: 'black', cls: 'bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715]', label: 'Kömür / Krem' },
+      { id: 'dark', cls: 'bg-[#4A4640] text-[#FAF9F6] dark:bg-[#B8B2A6] dark:text-[#181715]', label: 'Koyu Taş' },
+      { id: 'mid', cls: 'bg-[#6E6960] text-[#FAF9F6] dark:bg-[#8C867B] dark:text-[#141312]', label: 'Sıcak Gri' },
+      { id: 'outline', cls: 'bg-[#EFECE6] text-[#1C1B19] border border-[#B5AFA4] dark:bg-[#252320] dark:text-[#ECEAE4] dark:border-[#4A4640]', label: 'Çerçeveli' }
     ];
 
     function escapeHtml(str) {
@@ -1004,27 +1030,23 @@
     function getInitials(name, surname) {
       const n = (name || '').trim();
       const s = (surname || '').trim();
-      if (n && s) {
-        return (n[0] + s[0]).toLocaleUpperCase('tr-TR');
-      }
-      if (n.length >= 2) {
-        return n.slice(0, 2).toLocaleUpperCase('tr-TR');
-      }
+      if (n && s) return (n[0] + s[0]).toLocaleUpperCase('tr-TR');
+      if (n.length >= 2) return n.slice(0, 2).toLocaleUpperCase('tr-TR');
       return (n || '?').toLocaleUpperCase('tr-TR');
     }
 
-    function getBadgeColorClass(colorId) {
-      const found = BADGE_COLORS.find(c => c.id === colorId);
-      return found ? found.cls : BADGE_COLORS[0].cls;
+    function getBadgeColorClass(toneId) {
+      const found = BADGE_TONES.find(c => c.id === toneId);
+      return found ? found.cls : BADGE_TONES[0].cls;
     }
 
-    function pickDefaultBadgeColor(seedText) {
+    function pickDefaultBadgeTone(seedText) {
       let hash = 0;
       const str = String(seedText || '');
       for (let i = 0; i < str.length; i++) {
-        hash = (hash * 31 + str.charCodeAt(i)) % BADGE_COLORS.length;
+        hash = (hash * 31 + str.charCodeAt(i)) % BADGE_TONES.length;
       }
-      return BADGE_COLORS[Math.abs(hash) % BADGE_COLORS.length].id;
+      return BADGE_TONES[Math.abs(hash) % BADGE_TONES.length].id;
     }
 
     function formatAgeText(dobVal) {
@@ -1063,6 +1085,37 @@
     }
 
     // =========================================================================
+    // SOL ÇEKMECE MENÜ (DRAWER) KONTROLÜ
+    // =========================================================================
+    function isSideDrawerOpen() {
+      const drawer = document.getElementById('sideDrawer');
+      return drawer && !drawer.classList.contains('-translate-x-full');
+    }
+
+    function openSideDrawer() {
+      const drawer = document.getElementById('sideDrawer');
+      const backdrop = document.getElementById('drawerBackdrop');
+      if (!drawer || !backdrop) return;
+      backdrop.classList.remove('hidden');
+      drawer.classList.remove('-translate-x-full');
+      drawer.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeSideDrawer() {
+      const drawer = document.getElementById('sideDrawer');
+      const backdrop = document.getElementById('drawerBackdrop');
+      if (!drawer || !backdrop) return;
+      drawer.classList.add('-translate-x-full');
+      drawer.setAttribute('aria-hidden', 'true');
+      backdrop.classList.add('hidden');
+    }
+
+    function openModalFromDrawer(openFn) {
+      closeSideDrawer();
+      if (typeof openFn === 'function') openFn();
+    }
+
+    // =========================================================================
     // SESLİ OKUMA (OPT-IN TTS)
     // =========================================================================
     window.speakGlobal = async function(text, rate = 0.9) {
@@ -1078,9 +1131,7 @@
             volume: 1.0
           });
           return;
-        } catch (e) {
-          console.warn('Capacitor TTS hatası:', e);
-        }
+        } catch (e) {}
       }
       try {
         if ('speechSynthesis' in window) {
@@ -1100,13 +1151,17 @@
     // VERİ YÜKLEME, NORMALİZASYON VE DURUM YÖNETİMİ
     // =========================================================================
     function normalizeStudent(st) {
-      const normalized = {
+      const validTone = BADGE_TONES.some(t => t.id === st.badgeColor)
+        ? st.badgeColor
+        : pickDefaultBadgeTone(`${st.name || ''}${st.surname || ''}`);
+
+      return {
         id: st.id !== undefined && st.id !== null ? String(st.id) : generateId('st'),
         name: String(st.name || '').trim(),
         surname: String(st.surname || '').trim(),
         number: String(st.number || '').trim(),
         stars: Math.max(0, Number(st.stars) || 0),
-        badgeColor: st.badgeColor || pickDefaultBadgeColor(`${st.name || ''}${st.surname || ''}`),
+        badgeColor: validTone,
         gender: st.gender || 'Belirtilmedi',
         dob: st.dob || '',
         bloodGroup: st.bloodGroup || '',
@@ -1140,7 +1195,6 @@
           starAwarded: Boolean(n.starAwarded)
         })) : []
       };
-      return normalized;
     }
 
     function loadClassData() {
@@ -1182,7 +1236,7 @@
 
     let editingClassName = null;
     let currentProfileStudentId = null;
-    let selectedProfileBadgeColor = 'indigo';
+    let selectedProfileBadgeTone = 'black';
     let currentNoteStudentId = null;
     let noteFilterState = 'all';
     let isTtsVoiceEnabled = false;
@@ -1191,27 +1245,25 @@
       return (classData[clsName] || []).find(s => String(s.id) === String(studentId)) || null;
     }
 
-    // Toast Bildirimi
     function showToast(message, type = 'info') {
       const container = document.getElementById('toastContainer');
       const toast = document.createElement('div');
-      const colors = {
-        success: 'bg-emerald-700 text-white',
-        error: 'bg-rose-700 text-white',
-        info: 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900',
-        warning: 'bg-amber-600 text-white'
+      const styles = {
+        success: 'bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715] border border-[#3A3732] dark:border-[#C4BFB4]',
+        error: 'bg-red-800 text-[#FAF9F6] border border-red-900',
+        info: 'bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715] border border-[#3A3732] dark:border-[#C4BFB4]',
+        warning: 'bg-[#3A3732] text-[#FAF9F6] dark:bg-[#D4CFC3] dark:text-[#181715] border border-[#4A4640]'
       };
-      toast.className = `px-3.5 py-2 rounded-lg text-xs font-semibold shadow-md transition-opacity duration-200 opacity-0 pointer-events-auto ${colors[type] || colors.info}`;
+      toast.className = `px-3.5 py-2 sharp-card text-xs font-semibold shadow-lg transition-opacity duration-200 opacity-0 pointer-events-auto ${styles[type] || styles.info}`;
       toast.textContent = message;
       container.appendChild(toast);
       requestAnimationFrame(() => toast.classList.remove('opacity-0'));
       setTimeout(() => {
         toast.classList.add('opacity-0');
         setTimeout(() => toast.remove(), 220);
-      }, 2800);
+      }, 2600);
     }
 
-    // Senkronize Geri Al (classData + bulkTasksData + activeClass)
     function pushHistory() {
       history.push(JSON.stringify({
         classData,
@@ -1237,8 +1289,10 @@
     }
 
     function updateUndoBtn() {
-      const btn = document.getElementById('undoBtn');
+      const btn = document.getElementById('drawerUndoBtn');
+      const countEl = document.getElementById('drawerUndoCount');
       if (btn) btn.disabled = history.length === 0;
+      if (countEl) countEl.textContent = history.length > 0 ? `↩ (${history.length})` : '↩';
     }
 
     function persistChanges() {
@@ -1246,25 +1300,38 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(classData));
         localStorage.setItem(BULK_TASKS_KEY, JSON.stringify(bulkTasksData));
       } catch (e) {
-        showToast('Depolama alanı dolu! Lütfen Yedek bölümünden dışa aktarın.', 'error');
+        showToast('Depolama alanı dolu! Eski kayıtları temizleyin.', 'error');
       }
     }
 
     // =========================================================================
-    // SINIF SEKMELERİ VE ÖZET
+    // SINIF SEKMELERİ VE ÜST SINIF BUTONU
     // =========================================================================
     function renderClassTabs() {
+      const wrapper = document.getElementById('classTabsWrapper');
       const container = document.getElementById('classTabsContainer');
+      const actionBtn = document.getElementById('headerClassActionBtn');
       container.innerHTML = '';
       const classNames = Object.keys(classData);
 
       if (classNames.length === 0) {
         activeClass = '';
+        if (wrapper) {
+          wrapper.classList.add('hidden');
+          wrapper.classList.remove('flex');
+        }
+        if (actionBtn) actionBtn.textContent = '+ Sınıf Ekle';
         document.getElementById('classBannerTitle').textContent = 'Sınıf Bulunamadı';
         updateSummaryBar();
         render();
         return;
       }
+
+      if (wrapper) {
+        wrapper.classList.remove('hidden');
+        wrapper.classList.add('flex');
+      }
+      if (actionBtn) actionBtn.textContent = '+ Sınıf';
 
       if (!activeClass || !classData[activeClass]) {
         activeClass = classNames[0];
@@ -1274,10 +1341,10 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         const isActive = cls === activeClass;
-        btn.className = `px-2.5 py-1 text-xs font-semibold rounded-md transition whitespace-nowrap ${
+        btn.className = `px-2.5 py-1 text-xs font-bold sharp-btn whitespace-nowrap ${
           isActive
-            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            ? 'bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715]'
+            : 'text-[#5C5852] dark:text-[#9E9990] hover:text-[#1C1B19] dark:hover:text-[#ECEAE4]'
         }`;
         btn.textContent = cls;
         btn.addEventListener('click', () => switchClass(cls));
@@ -1384,14 +1451,14 @@
 
     function renderStars(count) {
       if (!count || count <= 0) {
-        return `<span class="text-xs text-slate-400 dark:text-slate-500">Yıldız yok</span>`;
+        return `<span class="text-xs text-[#8C867B] dark:text-[#6E6960]">Yıldız yok</span>`;
       }
       const maxVisible = 15;
       const visibleCount = Math.min(count, maxVisible);
-      const starSvg = `<svg class="w-4 h-4 inline-block shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#facc15" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
+      const starSvg = `<svg class="w-4 h-4 inline-block shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#eab308" stroke="#1C1B19" stroke-width="1.7" stroke-linejoin="round"/></svg>`;
       let html = starSvg.repeat(visibleCount);
       if (count > maxVisible) {
-        html += `<span class="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 rounded">+${count - maxVisible}</span>`;
+        html += `<span class="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-[#EFECE6] dark:bg-[#252320] text-[#1C1B19] dark:text-[#ECEAE4] sharp-card">+${count - maxVisible}</span>`;
       }
       return html;
     }
@@ -1406,11 +1473,11 @@
       const parentName = p.name ? ` (${escapeHtml(p.name)})` : '';
 
       return `
-        <div class="flex items-center gap-1.5 mt-1.5 bg-slate-50 dark:bg-slate-800/80 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 text-[11px] text-slate-700 dark:text-slate-300 max-w-full flex-wrap">
-          <span class="font-semibold text-slate-600 dark:text-slate-300">${relation}${parentName}:</span>
-          <span class="font-mono font-semibold text-slate-800 dark:text-slate-100">${escapeHtml(p.phone)}</span>
-          <a href="tel:${cleanPhone}" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 text-white font-semibold rounded text-[10px]">Ara</a>
-          <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="px-1.5 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded text-[10px]">WA</a>
+        <div class="flex items-center gap-1.5 mt-1.5 bg-[#F5F3EF] dark:bg-[#252320] px-2 py-1 sharp-card border border-[#DCD8D0] dark:border-[#33302B] text-[11px] text-[#4A4640] dark:text-[#C4BFB4] max-w-full flex-wrap">
+          <span class="font-semibold text-[#6E6960] dark:text-[#9E9990]">${relation}${parentName}:</span>
+          <span class="font-mono font-bold text-[#1C1B19] dark:text-[#ECEAE4]">${escapeHtml(p.phone)}</span>
+          <a href="tel:${cleanPhone}" class="px-1.5 py-0.5 border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#1C1B19] text-[#1C1B19] dark:text-[#ECEAE4] font-semibold sharp-btn text-[10px]">Ara</a>
+          <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="px-1.5 py-0.5 bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715] font-bold sharp-btn text-[10px]">WA</a>
         </div>
       `;
     }
@@ -1460,9 +1527,12 @@
 
       if (!activeClass || Object.keys(classData).length === 0) {
         container.innerHTML = `
-          <div class="bg-white dark:bg-slate-900 rounded-xl p-10 text-center border border-slate-200 dark:border-slate-800">
-            <p class="text-slate-700 dark:text-slate-200 font-bold text-base">Henüz kayıtlı sınıf yok</p>
-            <p class="text-slate-500 dark:text-slate-400 text-xs mt-1">Başlamak için üst menüdeki "+ Sınıf" butonuna dokunun.</p>
+          <div class="bg-[#FAF9F6] dark:bg-[#1C1B19] sharp-card p-8 text-center border border-[#DCD8D0] dark:border-[#2E2C27]">
+            <p class="text-[#1C1B19] dark:text-[#ECEAE4] font-bold text-base">Henüz kayıtlı sınıf yok</p>
+            <p class="text-[#6E6960] dark:text-[#9E9990] text-xs mt-1 mb-4">Başlamak için yeni bir sınıf oluşturun.</p>
+            <button type="button" onclick="openClassModal()" class="px-4 py-2 bg-[#262421] hover:bg-[#3A3732] dark:bg-[#E6E2D8] dark:hover:bg-[#D4CFC3] text-[#FAF9F6] dark:text-[#181715] text-xs font-bold sharp-btn">
+              + Yeni Sınıf Oluştur
+            </button>
           </div>
         `;
         return;
@@ -1476,15 +1546,15 @@
 
       if (filtered.length === 0) {
         container.innerHTML = `
-          <div class="bg-white dark:bg-slate-900 rounded-xl p-10 text-center border border-slate-200 dark:border-slate-800">
-            <p class="text-slate-500 dark:text-slate-400 font-semibold text-sm">Aramanızla eşleşen öğrenci bulunamadı.</p>
+          <div class="bg-[#FAF9F6] dark:bg-[#1C1B19] sharp-card p-10 text-center border border-[#DCD8D0] dark:border-[#2E2C27]">
+            <p class="text-[#6E6960] dark:text-[#9E9990] font-semibold text-sm">Aramanızla eşleşen öğrenci bulunamadı.</p>
           </div>
         `;
         return;
       }
 
       if (currentMode === 'list') {
-        let html = `<div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden">`;
+        let html = `<div class="bg-[#FAF9F6] dark:bg-[#1C1B19] sharp-card border border-[#DCD8D0] dark:border-[#2E2C27] divide-y divide-[#E5E1D8] dark:divide-[#2E2C27] overflow-hidden">`;
         filtered.forEach(st => {
           const safeId = escapeHtml(st.id);
           const fullName = escapeHtml(`${st.name} ${st.surname}`.trim());
@@ -1497,7 +1567,7 @@
           const absent = isStudentAbsentToday(st);
 
           html += `
-            <div class="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition ${absent ? 'bg-slate-50/80 dark:bg-slate-900/50 opacity-70' : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/30'}">
+            <div class="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition ${absent ? 'bg-[#F5F3EF] dark:bg-[#141312] opacity-55' : 'hover:bg-[#F5F3EF]/70 dark:hover:bg-[#252320]/50'}">
 
               <!-- SOL: Rozet, İsim, Durum ve Veli -->
               <div class="flex items-start gap-3 sm:w-2/5 min-w-[230px]">
@@ -1505,7 +1575,7 @@
                   type="button"
                   onclick="openProfileModal('${safeId}')"
                   title="Öğrenci Profilini Aç"
-                  class="w-10 h-10 rounded-lg ${badgeCls} flex items-center justify-center text-xs font-bold tracking-wide shrink-0 shadow-sm hover:opacity-90 transition"
+                  class="w-10 h-10 sharp-card ${badgeCls} flex items-center justify-center text-xs font-bold tracking-wide shrink-0 hover:opacity-85 transition"
                 >
                   ${initials}
                 </button>
@@ -1515,15 +1585,15 @@
                     <button
                       type="button"
                       onclick="openProfileModal('${safeId}')"
-                      class="text-left font-bold text-slate-900 dark:text-white text-sm hover:text-indigo-600 dark:hover:text-indigo-400 transition leading-snug"
+                      class="text-left font-bold text-[#1C1B19] dark:text-[#ECEAE4] text-sm hover:underline leading-snug"
                     >
                       ${fullName}
                     </button>
 
-                    ${st.number ? `<span class="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded font-mono font-semibold">#${escapeHtml(st.number)}</span>` : ''}
+                    ${st.number ? `<span class="text-[10px] bg-[#EFECE6] dark:bg-[#252320] text-[#5C5852] dark:text-[#9E9990] border border-[#DCD8D0] dark:border-[#33302B] px-1.5 py-0.5 sharp-card font-mono font-semibold">#${escapeHtml(st.number)}</span>` : ''}
 
                     ${hasHealth ? `
-                      <span title="Sağlık Uyarısı: ${escapeHtml(st.allergies)}" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                      <span title="Sağlık Uyarısı: ${escapeHtml(st.allergies)}" class="px-1.5 py-0.5 sharp-card text-[10px] font-bold bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715]">
                         Sağlık
                       </span>
                     ` : ''}
@@ -1532,10 +1602,10 @@
                       type="button"
                       onclick="toggleAbsentToday('${safeId}')"
                       title="Günlük Yoklama Durumunu Değiştir"
-                      class="px-1.5 py-0.5 rounded text-[10px] font-semibold border transition ${
+                      class="px-1.5 py-0.5 sharp-btn text-[10px] font-semibold border ${
                         absent
-                          ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200'
-                          : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                          ? 'bg-[#262421] text-[#FAF9F6] border-[#262421] dark:bg-[#E6E2D8] dark:text-[#181715] dark:border-[#E6E2D8]'
+                          : 'bg-[#FAF9F6] dark:bg-[#1C1B19] text-[#5C5852] dark:text-[#9E9990] border-[#D4CFC4] dark:border-[#38352F] hover:border-[#262421] dark:hover:border-[#E6E2D8]'
                       }"
                     >
                       ${absent ? 'Bugün Yok' : 'Var'}
@@ -1544,12 +1614,10 @@
                     <button
                       type="button"
                       onclick="openNoteModal('${safeId}')"
-                      class="px-2 py-0.5 rounded text-[10px] font-semibold border transition ${
+                      class="px-2 py-0.5 sharp-btn text-[10px] font-semibold border ${
                         hasPending
-                          ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
-                          : (notesArr.length > 0
-                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700')
+                          ? 'bg-[#262421] text-[#FAF9F6] border-[#262421] dark:bg-[#E6E2D8] dark:text-[#181715] dark:border-[#E6E2D8]'
+                          : 'bg-[#EFECE6] dark:bg-[#252320] text-[#4A4640] dark:text-[#C4BFB4] border-[#D4CFC4] dark:border-[#38352F]'
                       }"
                     >
                       ${hasPending ? `Not (${pendingCount} bekleyen)` : (notesArr.length > 0 ? `Notlar (${notesArr.length})` : 'Not Ekle')}
@@ -1559,7 +1627,7 @@
                   ${renderParentContactBar(st)}
 
                   ${hasPending ? `
-                    <p class="text-[11px] text-rose-600 dark:text-rose-400 font-medium truncate max-w-[300px] mt-1">
+                    <p class="text-[11px] text-[#4A4640] dark:text-[#C4BFB4] font-medium truncate max-w-[300px] mt-1">
                       Bekleyen: ${escapeHtml(notesArr.find(n => !n.completed)?.title || notesArr.find(n => !n.completed)?.text || '')}
                     </p>
                   ` : ''}
@@ -1567,20 +1635,20 @@
               </div>
 
               <!-- ORTA: Yıldızlar -->
-              <div class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-lg px-2.5 py-2 min-h-[38px] flex flex-wrap items-center gap-1">
+              <div class="flex-1 bg-[#F5F3EF] dark:bg-[#141312] border border-[#E5E1D8] dark:border-[#2E2C27] sharp-card px-2.5 py-2 min-h-[38px] flex flex-wrap items-center gap-1">
                 ${renderStars(st.stars)}
               </div>
 
               <!-- SAĞ: Puan ve İşlemler -->
               <div class="flex items-center justify-between sm:justify-end gap-2 shrink-0">
-                <div class="min-w-[46px] text-right font-bold text-amber-600 dark:text-amber-400 text-sm font-mono">
+                <div class="min-w-[46px] text-right font-bold text-[#1C1B19] dark:text-[#ECEAE4] text-sm font-mono">
                   ${st.stars} ★
                 </div>
 
                 <div class="flex items-center gap-1.5">
-                  <button type="button" onclick="addStar('${safeId}')" class="h-8 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg transition">+1</button>
-                  <button type="button" onclick="removeStar('${safeId}')" class="h-8 w-8 bg-slate-200 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950 hover:text-rose-600 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-lg transition disabled:opacity-40" ${st.stars === 0 ? 'disabled' : ''}>-</button>
-                  <button type="button" onclick="resetStudent('${safeId}')" class="h-8 px-2 text-slate-400 hover:text-rose-600 text-xs font-medium rounded-lg transition">Sıfırla</button>
+                  <button type="button" onclick="addStar('${safeId}')" class="h-8 px-3 bg-[#262421] hover:bg-[#3A3732] dark:bg-[#E6E2D8] dark:hover:bg-[#D4CFC3] text-[#FAF9F6] dark:text-[#181715] font-bold text-xs sharp-btn">+1</button>
+                  <button type="button" onclick="removeStar('${safeId}')" class="h-8 w-8 border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#252320] hover:bg-[#EFECE6] dark:hover:bg-[#2E2C27] text-[#262421] dark:text-[#E6E2D8] font-bold text-xs sharp-btn disabled:opacity-35" ${st.stars === 0 ? 'disabled' : ''}>-</button>
+                  <button type="button" onclick="resetStudent('${safeId}')" class="h-8 px-2 text-[#6E6960] hover:text-[#1C1B19] dark:text-[#9E9990] dark:hover:text-[#ECEAE4] text-xs font-medium sharp-btn">Sıfırla</button>
                 </div>
               </div>
 
@@ -1606,14 +1674,14 @@
         const absent = isStudentAbsentToday(st);
 
         html += `
-          <div class="bg-white dark:bg-slate-900 rounded-xl p-3.5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between ${absent ? 'opacity-70' : ''}">
+          <div class="bg-[#FAF9F6] dark:bg-[#1C1B19] sharp-card p-3.5 border border-[#DCD8D0] dark:border-[#2E2C27] flex flex-col justify-between ${absent ? 'opacity-55' : ''}">
             <div>
-              <div class="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5 mb-2.5">
+              <div class="flex items-start justify-between gap-2 border-b border-[#E5E1D8] dark:border-[#2E2C27] pb-2.5 mb-2.5">
                 <div class="flex items-center gap-2.5 min-w-0">
                   <button
                     type="button"
                     onclick="openProfileModal('${safeId}')"
-                    class="w-9 h-9 rounded-lg ${badgeCls} flex items-center justify-center text-xs font-bold shrink-0"
+                    class="w-9 h-9 sharp-card ${badgeCls} flex items-center justify-center text-xs font-bold shrink-0"
                   >
                     ${initials}
                   </button>
@@ -1621,18 +1689,18 @@
                     <button
                       type="button"
                       onclick="openProfileModal('${safeId}')"
-                      class="block text-left font-bold text-slate-900 dark:text-white text-sm hover:text-indigo-600 dark:hover:text-indigo-400 truncate max-w-full"
+                      class="block text-left font-bold text-[#1C1B19] dark:text-[#ECEAE4] text-sm hover:underline truncate max-w-full"
                     >
                       ${fullName}
                     </button>
                     <div class="flex items-center gap-1.5 mt-0.5">
-                      ${st.number ? `<span class="text-[10px] text-slate-400 font-mono">#${escapeHtml(st.number)}</span>` : ''}
-                      ${hasHealth ? `<span class="text-[10px] text-rose-600 dark:text-rose-400 font-semibold">Sağlık</span>` : ''}
+                      ${st.number ? `<span class="text-[10px] text-[#6E6960] font-mono">#${escapeHtml(st.number)}</span>` : ''}
+                      ${hasHealth ? `<span class="text-[10px] text-[#1C1B19] dark:text-[#ECEAE4] font-bold">Sağlık</span>` : ''}
                     </div>
                   </div>
                 </div>
 
-                <span class="bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900 text-xs font-bold font-mono px-2 py-0.5 rounded-md shrink-0">
+                <span class="bg-[#EFECE6] dark:bg-[#252320] text-[#1C1B19] dark:text-[#ECEAE4] border border-[#D4CFC4] dark:border-[#38352F] text-xs font-bold font-mono px-2 py-0.5 sharp-card shrink-0">
                   ${st.stars} ★
                 </span>
               </div>
@@ -1643,10 +1711,10 @@
                 <button
                   type="button"
                   onclick="openNoteModal('${safeId}')"
-                  class="px-2 py-0.5 rounded text-[10px] font-semibold border transition ${
+                  class="px-2 py-0.5 sharp-btn text-[10px] font-semibold border ${
                     hasPending
-                      ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800'
-                      : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                      ? 'bg-[#262421] text-[#FAF9F6] border-[#262421] dark:bg-[#E6E2D8] dark:text-[#181715] dark:border-[#E6E2D8]'
+                      : 'bg-[#EFECE6] text-[#4A4640] border-[#D4CFC4] dark:bg-[#252320] dark:text-[#C4BFB4] dark:border-[#38352F]'
                   }"
                 >
                   ${hasPending ? `Notlar (${pendingCount} bekliyor)` : `Notlar (${notesArr.length})`}
@@ -1655,27 +1723,27 @@
                 <button
                   type="button"
                   onclick="toggleAbsentToday('${safeId}')"
-                  class="px-2 py-0.5 rounded text-[10px] font-semibold border transition ${
+                  class="px-2 py-0.5 sharp-btn text-[10px] font-semibold border ${
                     absent
-                      ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900'
-                      : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700'
+                      ? 'bg-[#262421] text-[#FAF9F6] border-[#262421] dark:bg-[#E6E2D8] dark:text-[#181715] dark:border-[#E6E2D8]'
+                      : 'bg-[#FAF9F6] dark:bg-[#1C1B19] text-[#5C5852] dark:text-[#9E9990] border-[#D4CFC4] dark:border-[#38352F]'
                   }"
                 >
                   ${absent ? 'Bugün Yok' : 'Var'}
                 </button>
               </div>
 
-              <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-lg p-2 min-h-[54px] flex flex-wrap content-start items-center gap-1 mb-3">
+              <div class="bg-[#F5F3EF] dark:bg-[#141312] border border-[#E5E1D8] dark:border-[#2E2C27] sharp-card p-2 min-h-[54px] flex flex-wrap content-start items-center gap-1 mb-3">
                 ${renderStars(st.stars)}
               </div>
             </div>
 
             <div>
               <div class="flex items-center gap-1.5 mb-1.5">
-                <button type="button" onclick="addStar('${safeId}')" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg transition">+1 Yıldız</button>
-                <button type="button" onclick="removeStar('${safeId}')" class="w-9 py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-lg transition disabled:opacity-40" ${st.stars === 0 ? 'disabled' : ''}>-</button>
+                <button type="button" onclick="addStar('${safeId}')" class="flex-1 py-1.5 bg-[#262421] hover:bg-[#3A3732] dark:bg-[#E6E2D8] dark:hover:bg-[#D4CFC3] text-[#FAF9F6] dark:text-[#181715] font-bold text-xs sharp-btn">+1 Yıldız</button>
+                <button type="button" onclick="removeStar('${safeId}')" class="w-9 py-1.5 border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#252320] text-[#262421] dark:text-[#E6E2D8] font-bold text-xs sharp-btn disabled:opacity-35" ${st.stars === 0 ? 'disabled' : ''}>-</button>
               </div>
-              <button type="button" onclick="resetStudent('${safeId}')" class="w-full py-0.5 text-slate-400 hover:text-rose-600 text-[11px] font-medium text-center transition">Sıfırla</button>
+              <button type="button" onclick="resetStudent('${safeId}')" class="w-full py-0.5 text-[#6E6960] hover:text-[#1C1B19] dark:text-[#9E9990] dark:hover:text-[#ECEAE4] text-[11px] font-medium text-center">Sıfırla</button>
             </div>
           </div>
         `;
@@ -1690,13 +1758,13 @@
     function initBadgeColorPicker() {
       const box = document.getElementById('badgeColorList');
       box.innerHTML = '';
-      BADGE_COLORS.forEach(c => {
+      BADGE_TONES.forEach(c => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = `px-2.5 py-1 rounded-md text-xs font-semibold ${c.cls} ${selectedProfileBadgeColor === c.id ? 'ring-2 ring-offset-2 ring-slate-900 dark:ring-white' : ''}`;
+        btn.className = `px-2.5 py-1 sharp-btn text-xs font-semibold ${c.cls} ${selectedProfileBadgeTone === c.id ? 'ring-2 ring-offset-2 ring-[#262421] dark:ring-[#E6E2D8]' : ''}`;
         btn.textContent = c.label;
         btn.addEventListener('click', () => {
-          selectedProfileBadgeColor = c.id;
+          selectedProfileBadgeTone = c.id;
           updateProfileBadgePreview();
           document.getElementById('badgeColorBox').classList.add('hidden');
         });
@@ -1713,7 +1781,7 @@
       const el = document.getElementById('profileAvatarDisplay');
       const name = document.getElementById('profInputName').value;
       const surname = document.getElementById('profInputSurname').value;
-      el.className = `w-11 h-11 rounded-lg ${getBadgeColorClass(selectedProfileBadgeColor)} flex items-center justify-center text-sm font-bold tracking-wide shadow-sm`;
+      el.className = `w-11 h-11 sharp-card ${getBadgeColorClass(selectedProfileBadgeTone)} flex items-center justify-center text-sm font-bold tracking-wide`;
       el.textContent = getInitials(name, surname);
     }
 
@@ -1724,10 +1792,10 @@
         const btn = document.getElementById(`pTabBtn${cap}`);
         if (t === tabName) {
           content.classList.remove('hidden');
-          btn.className = 'px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950 font-semibold';
+          btn.className = 'px-3 py-1.5 sharp-btn bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715] font-bold';
         } else {
           content.classList.add('hidden');
-          btn.className = 'px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold';
+          btn.className = 'px-3 py-1.5 sharp-btn text-[#5C5852] dark:text-[#9E9990] hover:bg-[#EFECE6] dark:hover:bg-[#252320] font-semibold';
         }
       });
     }
@@ -1736,7 +1804,7 @@
       const student = findStudent(studentId);
       if (!student) return;
       currentProfileStudentId = student.id;
-      selectedProfileBadgeColor = student.badgeColor || 'indigo';
+      selectedProfileBadgeTone = student.badgeColor || 'black';
 
       document.getElementById('badgeColorBox').classList.add('hidden');
       document.getElementById('profileTitleName').textContent = `${student.name} ${student.surname}`.trim();
@@ -1788,18 +1856,18 @@
       box.innerHTML = '';
       const notes = student.notes || [];
       if (notes.length === 0) {
-        box.innerHTML = `<p class="text-xs text-slate-400">Kayıtlı not veya görev bulunmuyor.</p>`;
+        box.innerHTML = `<p class="text-xs text-[#8C867B]">Kayıtlı not veya görev bulunmuyor.</p>`;
         return;
       }
       notes.forEach(n => {
         const item = document.createElement('div');
-        item.className = 'p-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs flex items-center justify-between border border-slate-200 dark:border-slate-700';
+        item.className = 'p-2 sharp-card bg-[#F5F3EF] dark:bg-[#252320] text-xs flex items-center justify-between border border-[#DCD8D0] dark:border-[#33302B]';
         item.innerHTML = `
           <div class="truncate mr-2">
-            <span class="font-semibold text-slate-800 dark:text-white">${escapeHtml(n.title || n.text)}</span>
-            <span class="text-[10px] text-slate-400 ml-1">${n.date ? `(${escapeHtml(n.date)})` : ''}</span>
+            <span class="font-semibold text-[#1C1B19] dark:text-[#ECEAE4]">${escapeHtml(n.title || n.text)}</span>
+            <span class="text-[10px] text-[#8C867B] ml-1">${n.date ? `(${escapeHtml(n.date)})` : ''}</span>
           </div>
-          <span class="text-[10px] font-semibold shrink-0 ${n.completed ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}">${n.completed ? 'Tamamlandı' : 'Bekliyor'}</span>
+          <span class="text-[10px] font-bold shrink-0 ${n.completed ? 'text-[#6E6960]' : 'text-[#1C1B19] dark:text-[#ECEAE4]'}">${n.completed ? 'Tamamlandı' : 'Bekliyor'}</span>
         `;
         box.appendChild(item);
       });
@@ -1838,7 +1906,7 @@
       student.dob = document.getElementById('profInputDob').value;
       student.bloodGroup = document.getElementById('profInputBlood').value;
       student.busInfo = document.getElementById('profInputBus').value.trim();
-      student.badgeColor = selectedProfileBadgeColor;
+      student.badgeColor = selectedProfileBadgeTone;
 
       student.parent1 = {
         name: document.getElementById('profInputP1Name').value.trim(),
@@ -1925,91 +1993,91 @@
       };
 
       const notesRows = notes.length > 0 ? notes.map((n, i) => `
-        <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+        <tr style="border-bottom: 1px solid #d4cfc4; font-size: 11px;">
           <td style="padding: 6px; font-weight: bold; width: 30px;">${i + 1}</td>
           <td style="padding: 6px; font-weight: 600;">${escapeHtml(n.title || n.text)}</td>
           <td style="padding: 6px;">${escapeHtml(categoryMap[n.category] || 'Not')}</td>
           <td style="padding: 6px;">${escapeHtml(n.dueDate || n.date || '-')}</td>
-          <td style="padding: 6px; font-weight: bold; color: ${n.completed ? '#059669' : '#d97706'};">
+          <td style="padding: 6px; font-weight: bold; color: #1c1b19;">
             ${n.completed ? 'TAMAMLANDI' : 'BEKLİYOR'}
           </td>
         </tr>
       `).join('') : `
         <tr>
-          <td colspan="5" style="padding: 10px; text-align: center; color: #64748b; font-size: 11px;">Kayıtlı görev veya not bulunmamaktadır.</td>
+          <td colspan="5" style="padding: 10px; text-align: center; color: #5c5852; font-size: 11px;">Kayıtlı görev veya not bulunmamaktadır.</td>
         </tr>
       `;
 
       return `
-        <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.45; padding: 14px;">
-          <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 14px;">
+        <div style="font-family: Arial, sans-serif; color: #1c1b19; line-height: 1.45; padding: 14px;">
+          <div style="text-align: center; border-bottom: 2px solid #262421; padding-bottom: 8px; margin-bottom: 14px;">
             <h1 style="font-size: 15px; font-weight: 800; margin: 0;">ÖĞRENCİ BİLGİ, GELİŞİM VE TAKİP DOSYASI</h1>
-            <p style="font-size: 10px; color: #475569; margin: 4px 0 0 0;">Sınıf: ${escapeHtml(activeClass)} &nbsp;|&nbsp; Rapor Tarihi: ${escapeHtml(new Date().toLocaleDateString('tr-TR'))}</p>
+            <p style="font-size: 10px; color: #4a4640; margin: 4px 0 0 0;">Sınıf: ${escapeHtml(activeClass)} &nbsp;|&nbsp; Rapor Tarihi: ${escapeHtml(new Date().toLocaleDateString('tr-TR'))}</p>
           </div>
 
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11px;">
-            <tr style="background: #f8fafc;">
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; width: 22%;">Adı Soyadı:</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: 700;">${escapeHtml(student.name)} ${escapeHtml(student.surname)}</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; width: 18%;">Sınıf / Şube:</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: 700;">${escapeHtml(activeClass)}</td>
+            <tr style="background: #f5f3ef;">
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold; width: 22%;">Adı Soyadı:</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: 700;">${escapeHtml(student.name)} ${escapeHtml(student.surname)}</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold; width: 18%;">Sınıf / Şube:</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: 700;">${escapeHtml(activeClass)}</td>
             </tr>
             <tr>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">Okul Numarası:</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px;">${escapeHtml(student.number || 'Belirtilmedi')}</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">Toplam Yıldız:</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: 800; color: #b45309;">${student.stars || 0} ★</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold;">Okul Numarası:</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px;">${escapeHtml(student.number || 'Belirtilmedi')}</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold;">Toplam Yıldız:</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: 800;">${student.stars || 0} ★</td>
             </tr>
-            <tr style="background: #f8fafc;">
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">Doğum Tarihi:</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px;">${dobDisplay}</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">Kan Grubu:</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px;">${escapeHtml(student.bloodGroup || 'Bilinmiyor')}</td>
+            <tr style="background: #f5f3ef;">
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold;">Doğum Tarihi:</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px;">${dobDisplay}</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold;">Kan Grubu:</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px;">${escapeHtml(student.bloodGroup || 'Bilinmiyor')}</td>
             </tr>
             <tr>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">Cinsiyet:</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px;">${escapeHtml(student.gender || '-')}</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">Servis / Ulaşım:</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px;">${escapeHtml(student.busInfo || '-')}</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold;">Cinsiyet:</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px;">${escapeHtml(student.gender || '-')}</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold;">Servis / Ulaşım:</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px;">${escapeHtml(student.busInfo || '-')}</td>
             </tr>
           </table>
 
-          <h3 style="font-size: 11px; font-weight: 800; background: #e2e8f0; padding: 4px 6px; margin: 0 0 4px 0;">1. VELİ VE İLETİŞİM BİLGİLERİ</h3>
+          <h3 style="font-size: 11px; font-weight: 800; background: #efece6; padding: 4px 6px; margin: 0 0 4px 0;">1. VELİ VE İLETİŞİM BİLGİLERİ</h3>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11px;">
             <tr>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; width: 22%;">1. Veli (${escapeHtml(p1.relation || 'Veli')}):</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px;">${escapeHtml(p1.name || '-')} / <strong>${escapeHtml(p1.phone || '-')}</strong></td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold; width: 22%;">1. Veli (${escapeHtml(p1.relation || 'Veli')}):</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px;">${escapeHtml(p1.name || '-')} / <strong>${escapeHtml(p1.phone || '-')}</strong></td>
             </tr>
-            <tr style="background: #f8fafc;">
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">2. Veli (${escapeHtml(p2.relation || 'Acil Durum')}):</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px;">${escapeHtml(p2.name || '-')} / <strong>${escapeHtml(p2.phone || '-')}</strong></td>
+            <tr style="background: #f5f3ef;">
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold;">2. Veli (${escapeHtml(p2.relation || 'Acil Durum')}):</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px;">${escapeHtml(p2.name || '-')} / <strong>${escapeHtml(p2.phone || '-')}</strong></td>
             </tr>
             <tr>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">Adres:</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px;">${escapeHtml(student.address || 'Belirtilmedi')}</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold;">Adres:</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px;">${escapeHtml(student.address || 'Belirtilmedi')}</td>
             </tr>
           </table>
 
-          <h3 style="font-size: 11px; font-weight: 800; background: #e2e8f0; padding: 4px 6px; margin: 0 0 4px 0;">2. SAĞLIK VE REHBERLİK GÖZLEMLERİ</h3>
+          <h3 style="font-size: 11px; font-weight: 800; background: #efece6; padding: 4px 6px; margin: 0 0 4px 0;">2. SAĞLIK VE REHBERLİK GÖZLEMLERİ</h3>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11px;">
             <tr>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; width: 22%; color: #b91c1c;">Sağlık Uyarısı:</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold; color: #b91c1c;">${escapeHtml(student.allergies || 'Kayıtlı alerji veya kronik uyarı yoktur.')}</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold; width: 22%;">Sağlık Uyarısı:</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold;">${escapeHtml(student.allergies || 'Kayıtlı alerji veya kronik uyarı yoktur.')}</td>
             </tr>
-            <tr style="background: #f8fafc;">
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">Gözlem Notları:</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px;">${escapeHtml(student.guidanceNotes || 'Gözlem kaydı eklenmemiştir.')}</td>
+            <tr style="background: #f5f3ef;">
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold;">Gözlem Notları:</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px;">${escapeHtml(student.guidanceNotes || 'Gözlem kaydı eklenmemiştir.')}</td>
             </tr>
             <tr>
-              <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: bold;">İlgi Alanları:</td>
-              <td style="border: 1px solid #cbd5e1; padding: 6px;">${escapeHtml(student.hobbies || '-')}</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px; font-weight: bold;">İlgi Alanları:</td>
+              <td style="border: 1px solid #b5afa4; padding: 6px;">${escapeHtml(student.hobbies || '-')}</td>
             </tr>
           </table>
 
-          <h3 style="font-size: 11px; font-weight: 800; background: #e2e8f0; padding: 4px 6px; margin: 0 0 4px 0;">3. GÖREV VE DEĞERLENDİRME ÇİZELGESİ</h3>
+          <h3 style="font-size: 11px; font-weight: 800; background: #efece6; padding: 4px 6px; margin: 0 0 4px 0;">3. GÖREV VE DEĞERLENDİRME ÇİZELGESİ</h3>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
             <thead>
-              <tr style="background: #334155; color: #ffffff; font-size: 10px;">
+              <tr style="background: #262421; color: #faf9f6; font-size: 10px;">
                 <th style="padding: 6px; text-align: left;">#</th>
                 <th style="padding: 6px; text-align: left;">Başlık</th>
                 <th style="padding: 6px; text-align: left;">Kategori</th>
@@ -2024,12 +2092,12 @@
             <div style="text-align: center; width: 180px;">
               <p style="margin: 0;">Öğretmen</p>
               <div style="height: 36px;"></div>
-              <p style="margin: 0; border-top: 1px dotted #475569; padding-top: 3px;">İmza / Tarih</p>
+              <p style="margin: 0; border-top: 1px dotted #4a4640; padding-top: 3px;">İmza / Tarih</p>
             </div>
             <div style="text-align: center; width: 180px;">
               <p style="margin: 0;">Okul İdaresi</p>
               <div style="height: 36px;"></div>
-              <p style="margin: 0; border-top: 1px dotted #475569; padding-top: 3px;">Mühür / İmza</p>
+              <p style="margin: 0; border-top: 1px dotted #4a4640; padding-top: 3px;">Mühür / İmza</p>
             </div>
           </div>
         </div>
@@ -2085,7 +2153,6 @@
         const dataUri = await worker.outputPdf('datauristring');
         const base64Data = dataUri.split(',')[1];
 
-        // 1. Android Capacitor Native Filesystem + Share
         const capPlugins = window.Capacitor && window.Capacitor.Plugins;
         if (capPlugins && capPlugins.Filesystem && capPlugins.Share) {
           const savedFile = await capPlugins.Filesystem.writeFile({
@@ -2103,7 +2170,6 @@
           return;
         }
 
-        // 2. Web Share API (destekleyen mobil tarayıcılar)
         const pdfBlob = await worker.outputPdf('blob');
         if (navigator.share && navigator.canShare) {
           const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
@@ -2117,7 +2183,6 @@
           }
         }
 
-        // 3. Masaüstü Tarayıcı İndirme
         const blobUrl = URL.createObjectURL(pdfBlob);
         const link = document.createElement('a');
         link.href = blobUrl;
@@ -2129,7 +2194,6 @@
         showToast('PDF indirildi', 'success');
       } catch (err) {
         if (err && err.name === 'AbortError') return;
-        console.error('PDF oluşturma hatası:', err);
         showToast('PDF oluşturulamadı', 'error');
       } finally {
         printContainer.style.display = 'none';
@@ -2138,7 +2202,7 @@
     }
 
     // =========================================================================
-    // ÖĞRENCİ NOTLARI (YILDIZ ÖDÜLÜ SENKRONİZE)
+    // ÖĞRENCİ NOTLARI
     // =========================================================================
     function applyNoteCompletionState(student, note, targetCompleted) {
       note.completed = Boolean(targetCompleted);
@@ -2175,9 +2239,9 @@
       ['All', 'Pending', 'Done'].forEach(f => {
         const btn = document.getElementById(`noteFilter${f}`);
         if (f.toLowerCase() === filter) {
-          btn.className = 'px-2.5 py-1 bg-slate-800 text-white sharp-card';
+          btn.className = 'px-2.5 py-1 bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715] sharp-btn';
         } else {
-          btn.className = 'px-2.5 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 sharp-card';
+          btn.className = 'px-2.5 py-1 bg-[#EFECE6] dark:bg-[#252320] text-[#4A4640] dark:text-[#C4BFB4] sharp-btn';
         }
       });
       const s = findStudent(currentNoteStudentId);
@@ -2196,7 +2260,7 @@
       else if (noteFilterState === 'done') notes = allNotes.filter(n => n.completed);
 
       if (notes.length === 0) {
-        container.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs">Gösterilecek not bulunamadı.</div>`;
+        container.innerHTML = `<div class="text-center py-6 text-[#8C867B] text-xs">Gösterilecek not bulunamadı.</div>`;
         return;
       }
 
@@ -2212,48 +2276,48 @@
         parent_sign: 'Veli İmzası'
       };
 
-      const priorityColors = {
-        high: 'border-l-4 border-l-rose-500',
-        normal: 'border-l-4 border-l-amber-500',
-        low: 'border-l-4 border-l-emerald-500'
+      const priorityBorders = {
+        high: 'border-l-4 border-l-[#262421] dark:border-l-[#E6E2D8]',
+        normal: 'border-l-2 border-l-[#8C867B] dark:border-l-[#6E6960]',
+        low: 'border-l border-l-[#D4CFC4] dark:border-l-[#38352F]'
       };
 
       notes.forEach(item => {
         const isDone = Boolean(item.completed);
         const safeNoteId = escapeHtml(item.id);
         const card = document.createElement('div');
-        card.className = `p-3 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 sharp-card ${priorityColors[item.priority || 'normal']} flex flex-col gap-1.5 ${isDone ? 'opacity-65' : ''}`;
+        card.className = `p-3 bg-[#F5F3EF] dark:bg-[#252320] border border-[#DCD8D0] dark:border-[#33302B] sharp-card ${priorityBorders[item.priority || 'normal']} flex flex-col gap-1.5 ${isDone ? 'opacity-60' : ''}`;
 
         card.innerHTML = `
           <div class="flex items-start justify-between gap-2">
             <div>
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-[10px] font-semibold uppercase px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded">
+                <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 bg-[#EFECE6] dark:bg-[#1C1B19] text-[#262421] dark:text-[#E6E2D8] sharp-card">
                   ${escapeHtml(categoryLabels[item.category] || 'Not')}
                 </span>
-                ${item.batchId ? `<span class="text-[10px] font-semibold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">Sınıf Görevi</span>` : ''}
-                ${item.awardStarOnDone ? `<span class="text-[10px] font-semibold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded">+1 ★</span>` : ''}
-                <h4 class="text-xs font-bold ${isDone ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'}">
+                ${item.batchId ? `<span class="text-[10px] font-semibold border border-[#D4CFC4] dark:border-[#38352F] px-1.5 py-0.5 sharp-card">Sınıf Görevi</span>` : ''}
+                ${item.awardStarOnDone ? `<span class="text-[10px] font-bold bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715] px-1.5 py-0.5 sharp-card">+1 ★</span>` : ''}
+                <h4 class="text-xs font-bold ${isDone ? 'line-through text-[#8C867B]' : 'text-[#1C1B19] dark:text-[#ECEAE4]'}">
                   ${escapeHtml(item.title || item.text)}
                 </h4>
               </div>
-              ${item.title && item.text && item.title !== item.text ? `<p class="text-[11px] text-slate-600 dark:text-slate-300 mt-1">${escapeHtml(item.text)}</p>` : ''}
+              ${item.title && item.text && item.title !== item.text ? `<p class="text-[11px] text-[#4A4640] dark:text-[#C4BFB4] mt-1 leading-relaxed">${escapeHtml(item.text)}</p>` : ''}
             </div>
             <div class="text-right shrink-0">
-              <span class="text-[10px] text-slate-400 font-mono block">${escapeHtml(item.date || '')}</span>
-              ${item.dueDate ? `<span class="text-[10px] font-semibold text-rose-600 dark:text-rose-400 block">Son: ${escapeHtml(item.dueDate)}</span>` : ''}
+              <span class="text-[10px] text-[#8C867B] font-mono block">${escapeHtml(item.date || '')}</span>
+              ${item.dueDate ? `<span class="text-[10px] font-semibold text-[#4A4640] dark:text-[#C4BFB4] block">Son: ${escapeHtml(item.dueDate)}</span>` : ''}
             </div>
           </div>
 
-          <div class="flex items-center justify-between pt-1.5 border-t border-slate-200 dark:border-slate-700 text-xs">
-            <span class="text-[10px] font-semibold ${isDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}">
+          <div class="flex items-center justify-between pt-1.5 border-t border-[#E5E1D8] dark:border-[#33302B] text-xs">
+            <span class="text-[10px] font-bold ${isDone ? 'text-[#6E6960]' : 'text-[#1C1B19] dark:text-[#ECEAE4]'}">
               ${isDone ? 'Tamamlandı' : 'Bekliyor'}
             </span>
             <div class="flex items-center gap-1.5">
-              <button type="button" onclick="toggleNoteStatus('${safeNoteId}')" class="px-2.5 py-1 text-[11px] font-semibold sharp-btn ${isDone ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200' : 'bg-emerald-600 text-white'}">
+              <button type="button" onclick="toggleNoteStatus('${safeNoteId}')" class="px-2.5 py-1 text-[11px] font-bold sharp-btn ${isDone ? 'border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#1C1B19] text-[#4A4640] dark:text-[#C4BFB4]' : 'bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715]'}">
                 ${isDone ? 'Geri Al' : 'Tamamla'}
               </button>
-              <button type="button" onclick="deleteStudentNote('${safeNoteId}')" class="px-2 py-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded">Sil</button>
+              <button type="button" onclick="deleteStudentNote('${safeNoteId}')" class="px-2 py-1 text-[11px] font-semibold text-red-700 dark:text-red-400 hover:bg-[#EFECE6] dark:hover:bg-[#1C1B19] sharp-btn">Sil</button>
             </div>
           </div>
         `;
@@ -2348,13 +2412,13 @@
       if (tab === 'new') {
         tabNew.classList.remove('hidden');
         tabList.classList.add('hidden');
-        btnNew.className = 'px-3 py-1.5 bg-blue-600 text-white sharp-card font-semibold';
-        btnList.className = 'px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 sharp-card font-semibold';
+        btnNew.className = 'px-3 py-1.5 bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715] sharp-btn font-bold';
+        btnList.className = 'px-3 py-1.5 bg-[#EFECE6] dark:bg-[#252320] text-[#4A4640] dark:text-[#C4BFB4] sharp-btn font-semibold';
       } else {
         tabNew.classList.add('hidden');
         tabList.classList.remove('hidden');
-        btnList.className = 'px-3 py-1.5 bg-blue-600 text-white sharp-card font-semibold';
-        btnNew.className = 'px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 sharp-card font-semibold';
+        btnList.className = 'px-3 py-1.5 bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715] sharp-btn font-bold';
+        btnNew.className = 'px-3 py-1.5 bg-[#EFECE6] dark:bg-[#252320] text-[#4A4640] dark:text-[#C4BFB4] sharp-btn font-semibold';
         renderBulkTasksList();
       }
     }
@@ -2426,7 +2490,7 @@
       const students = classData[activeClass] || [];
 
       if (list.length === 0) {
-        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-8">Bu sınıfa atanmış toplu görev bulunmuyor.</p>`;
+        container.innerHTML = `<p class="text-xs text-[#8C867B] text-center py-8">Bu sınıfa atanmış toplu görev bulunmuyor.</p>`;
         return;
       }
 
@@ -2442,65 +2506,65 @@
         const allCompleted = completedCount === students.length && students.length > 0;
 
         const card = document.createElement('div');
-        card.className = 'p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 sharp-card space-y-2';
+        card.className = 'p-3 bg-[#F5F3EF] dark:bg-[#252320] border border-[#DCD8D0] dark:border-[#33302B] sharp-card space-y-2';
         card.innerHTML = `
           <div class="flex items-start justify-between gap-2">
             <div>
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-[10px] font-semibold px-1.5 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded">Sınıf Görevi</span>
-                ${task.awardStar ? `<span class="text-[10px] font-semibold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 rounded">+1 ★ Ödüllü</span>` : ''}
-                <h4 class="text-xs font-bold text-slate-900 dark:text-white">${escapeHtml(task.title)}</h4>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 bg-[#EFECE6] dark:bg-[#1C1B19] text-[#262421] dark:text-[#E6E2D8] sharp-card">Sınıf Görevi</span>
+                ${task.awardStar ? `<span class="text-[10px] font-bold px-1.5 py-0.5 bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715] sharp-card">+1 ★ Ödüllü</span>` : ''}
+                <h4 class="text-xs font-bold text-[#1C1B19] dark:text-[#ECEAE4]">${escapeHtml(task.title)}</h4>
               </div>
-              ${task.text ? `<p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">${escapeHtml(task.text)}</p>` : ''}
+              ${task.text ? `<p class="text-[11px] text-[#5C5852] dark:text-[#9E9990] mt-0.5">${escapeHtml(task.text)}</p>` : ''}
             </div>
             <div class="text-right shrink-0">
-              <span class="text-[10px] text-slate-400 font-mono">${escapeHtml(task.date || '')}</span>
-              ${task.dueDate ? `<span class="text-[10px] font-semibold text-rose-600 dark:text-rose-400 block">Son: ${escapeHtml(task.dueDate)}</span>` : ''}
+              <span class="text-[10px] text-[#8C867B] font-mono">${escapeHtml(task.date || '')}</span>
+              ${task.dueDate ? `<span class="text-[10px] font-semibold text-[#4A4640] dark:text-[#C4BFB4] block">Son: ${escapeHtml(task.dueDate)}</span>` : ''}
             </div>
           </div>
 
           <div>
             <div class="flex items-center justify-between text-[11px] font-semibold mb-1">
-              <span class="text-slate-600 dark:text-slate-300">Tamamlanma: %${percent}</span>
-              <span class="font-mono text-slate-700 dark:text-slate-300">${completedCount} / ${students.length}</span>
+              <span class="text-[#5C5852] dark:text-[#B8B2A6]">Tamamlanma: %${percent}</span>
+              <span class="font-mono text-[#1C1B19] dark:text-[#ECEAE4]">${completedCount} / ${students.length}</span>
             </div>
-            <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded overflow-hidden">
-              <div class="bg-blue-600 h-full transition-all duration-200" style="width: ${percent}%"></div>
+            <div class="w-full bg-[#E5E1D8] dark:bg-[#141312] h-2 sharp-card overflow-hidden">
+              <div class="bg-[#262421] dark:bg-[#E6E2D8] h-full transition-all duration-200" style="width: ${percent}%"></div>
             </div>
           </div>
 
-          <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700 flex-wrap gap-1.5">
+          <div class="flex items-center justify-between pt-2 border-t border-[#E5E1D8] dark:border-[#33302B] flex-wrap gap-1.5">
             <div class="flex items-center gap-1.5 flex-wrap">
               ${!allCompleted ? `
-                <button type="button" onclick="markAllCompletedForTask('${safeTaskId}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[11px] sharp-btn">
+                <button type="button" onclick="markAllCompletedForTask('${safeTaskId}')" class="px-2.5 py-1 bg-[#262421] dark:bg-[#E6E2D8] text-[#FAF9F6] dark:text-[#181715] font-bold text-[11px] sharp-btn">
                   Tüm Sınıfı Tamamla
                 </button>
               ` : `
-                <button type="button" onclick="unmarkAllForTask('${safeTaskId}')" class="px-2.5 py-1 bg-slate-600 hover:bg-slate-700 text-white font-semibold text-[11px] sharp-btn">
+                <button type="button" onclick="unmarkAllForTask('${safeTaskId}')" class="px-2.5 py-1 border border-[#D4CFC4] dark:border-[#38352F] bg-[#FAF9F6] dark:bg-[#1C1B19] text-[#262421] dark:text-[#E6E2D8] font-semibold text-[11px] sharp-btn">
                   Herkesi Bekliyor Yap
                 </button>
               `}
-              <button type="button" onclick="toggleBulkStudentsAccordion('${safeTaskId}')" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-semibold sharp-btn">
+              <button type="button" onclick="toggleBulkStudentsAccordion('${safeTaskId}')" class="px-2.5 py-1 bg-[#EFECE6] dark:bg-[#1C1B19] text-[#262421] dark:text-[#E6E2D8] text-[11px] font-semibold sharp-btn">
                 Öğrenci Listesi
               </button>
             </div>
-            <button type="button" onclick="deleteBulkTask('${safeTaskId}')" class="text-[11px] text-rose-600 dark:text-rose-400 font-semibold hover:underline">
+            <button type="button" onclick="deleteBulkTask('${safeTaskId}')" class="text-[11px] text-red-700 dark:text-red-400 font-semibold hover:underline">
               Görevi Sil
             </button>
           </div>
 
-          <div id="acc_${safeTaskId}" class="hidden pt-2 border-t border-slate-200 dark:border-slate-700 max-h-40 overflow-y-auto space-y-1">
+          <div id="acc_${safeTaskId}" class="hidden pt-2 border-t border-[#E5E1D8] dark:border-[#33302B] max-h-40 overflow-y-auto space-y-1">
             ${students.map(st => {
               const note = (st.notes || []).find(n => n.batchId === task.id);
               const done = Boolean(note && note.completed);
               const absent = isStudentAbsentToday(st);
               return `
-                <div class="flex items-center justify-between text-xs py-1 px-2 bg-slate-50 dark:bg-slate-900 rounded">
-                  <span class="font-medium text-slate-800 dark:text-slate-200">
+                <div class="flex items-center justify-between text-xs py-1 px-2 bg-[#FAF9F6] dark:bg-[#1C1B19] sharp-card">
+                  <span class="font-medium text-[#262421] dark:text-[#E6E2D8]">
                     ${escapeHtml(st.name)} ${escapeHtml(st.surname)}
-                    ${absent ? '<span class="text-[10px] text-slate-400 ml-1">(Yok)</span>' : ''}
+                    ${absent ? '<span class="text-[10px] text-[#8C867B] ml-1">(Yok)</span>' : ''}
                   </span>
-                  <button type="button" onclick="toggleSingleStudentBulkTask('${safeTaskId}', '${escapeHtml(st.id)}')" class="text-[10px] font-semibold px-2 py-0.5 rounded ${done ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'}">
+                  <button type="button" onclick="toggleSingleStudentBulkTask('${safeTaskId}', '${escapeHtml(st.id)}')" class="text-[10px] font-bold px-2 py-0.5 sharp-btn ${done ? 'bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715]' : 'border border-[#D4CFC4] dark:border-[#38352F] text-[#5C5852] dark:text-[#B8B2A6]'}">
                     ${done ? 'Tamamlandı' : 'Bekliyor'}
                   </button>
                 </div>
@@ -2576,13 +2640,11 @@
     }
 
     // =========================================================================
-    // RASTGELE GRUP OLUŞTURUCU
+    // RASTGELE GRUP OLUŞTURUCU (SICAK MONOKROM)
     // =========================================================================
-    const GROUP_COLORS = [
-      { border: 'border-indigo-300 dark:border-indigo-700', bg: 'bg-indigo-50/60 dark:bg-indigo-950/20', text: 'text-indigo-800 dark:text-indigo-300', badge: 'bg-indigo-600' },
-      { border: 'border-emerald-300 dark:border-emerald-700', bg: 'bg-emerald-50/60 dark:bg-emerald-950/20', text: 'text-emerald-800 dark:text-emerald-300', badge: 'bg-emerald-600' },
-      { border: 'border-amber-300 dark:border-amber-700', bg: 'bg-amber-50/60 dark:bg-amber-950/20', text: 'text-amber-800 dark:text-amber-300', badge: 'bg-amber-600' },
-      { border: 'border-slate-300 dark:border-slate-600', bg: 'bg-slate-50 dark:bg-slate-800/50', text: 'text-slate-800 dark:text-slate-200', badge: 'bg-slate-700' }
+    const GROUP_TONES = [
+      { border: 'border-[#262421] dark:border-[#C4BFB4]', bg: 'bg-[#F5F3EF] dark:bg-[#252320]', badge: 'bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715]' },
+      { border: 'border-[#B5AFA4] dark:border-[#4A4640]', bg: 'bg-[#FAF9F6] dark:bg-[#1C1B19]', badge: 'bg-[#5C5852] text-[#FAF9F6] dark:bg-[#9E9990] dark:text-[#141312]' }
     ];
 
     function openGroupModal() {
@@ -2603,7 +2665,7 @@
       container.innerHTML = '';
 
       if (students.length === 0) {
-        container.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-400">Gruplanacak mevcut öğrenci bulunamadı.</div>`;
+        container.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-[#8C867B]">Gruplanacak mevcut öğrenci bulunamadı.</div>`;
         return;
       }
 
@@ -2619,16 +2681,16 @@
       }
 
       groups.forEach((grp, idx) => {
-        const theme = GROUP_COLORS[idx % GROUP_COLORS.length];
+        const theme = GROUP_TONES[idx % GROUP_TONES.length];
         const card = document.createElement('div');
-        card.className = `p-3 rounded-lg border ${theme.border} ${theme.bg}`;
+        card.className = `p-3 sharp-card border ${theme.border} ${theme.bg}`;
         card.innerHTML = `
-          <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-200 dark:border-slate-700">
-            <span class="text-xs font-bold ${theme.text}">Grup ${idx + 1}</span>
-            <span class="text-[10px] px-2 py-0.5 rounded text-white font-semibold ${theme.badge}">${grp.length} Kişi</span>
+          <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-[#E5E1D8] dark:border-[#33302B]">
+            <span class="text-xs font-bold text-[#1C1B19] dark:text-[#ECEAE4]">Grup ${idx + 1}</span>
+            <span class="text-[10px] px-2 py-0.5 sharp-card font-bold ${theme.badge}">${grp.length} Kişi</span>
           </div>
-          <ul class="space-y-1 text-xs font-medium text-slate-800 dark:text-slate-100">
-            ${grp.map((st, sIdx) => `<li><span class="text-slate-400 font-mono text-[10px] mr-1">${sIdx + 1}.</span>${escapeHtml(st.name)} ${escapeHtml(st.surname)}</li>`).join('')}
+          <ul class="space-y-1 text-xs font-medium text-[#262421] dark:text-[#E6E2D8]">
+            ${grp.map((st, sIdx) => `<li><span class="text-[#8C867B] font-mono text-[10px] mr-1">${sIdx + 1}.</span>${escapeHtml(st.name)} ${escapeHtml(st.surname)}</li>`).join('')}
           </ul>
         `;
         container.appendChild(card);
@@ -2636,7 +2698,7 @@
     }
 
     // =========================================================================
-    // SÖZ HAKKI ÇARKI (YOKLAMA ENTEGRELİ & GECİKMELİ ELEME)
+    // SÖZ HAKKI ÇARKI (SICAK KÖMÜR DİLİMLER)
     // =========================================================================
     let isEliminationMode = false;
     let eliminatedStudents = {};
@@ -2645,17 +2707,17 @@
     let currentWheelRotation = 0;
     let isSpinning = false;
 
-    const WHEEL_PALETTE = ['#334155', '#4f46e5', '#0284c7', '#059669', '#d97706', '#dc2626', '#7c3aed', '#0d9488'];
+    const WHEEL_PALETTE = ['#262421', '#4A4640', '#383530', '#5E5951'];
 
     function toggleTtsVoice() {
       isTtsVoiceEnabled = !isTtsVoiceEnabled;
       const btn = document.getElementById('ttsVoiceToggleBtn');
       if (isTtsVoiceEnabled) {
-        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold border transition bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800';
-        btn.textContent = 'Sesli Okuma: Açık';
+        btn.className = 'px-2.5 py-1 sharp-btn text-xs font-bold border bg-[#262421] text-[#FAF9F6] border-[#262421] dark:bg-[#E6E2D8] dark:text-[#181715] dark:border-[#E6E2D8]';
+        btn.textContent = 'Ses: Açık';
       } else {
-        btn.className = 'px-2.5 py-1 rounded-lg text-xs font-semibold border transition bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700';
-        btn.textContent = 'Sesli Okuma: Kapalı';
+        btn.className = 'px-2.5 py-1 sharp-btn text-xs font-semibold border bg-[#EFECE6] dark:bg-[#252320] text-[#4A4640] dark:text-[#C4BFB4] border-[#D4CFC4] dark:border-[#38352F]';
+        btn.textContent = 'Ses: Kapalı';
       }
     }
 
@@ -2668,13 +2730,15 @@
       const sidebar = document.getElementById('eliminatedSidebar');
 
       if (isEliminationMode) {
-        btn.classList.remove('bg-slate-300', 'dark:bg-slate-700');
-        btn.classList.add('bg-indigo-600');
+        btn.classList.remove('bg-[#C4BFB4]', 'dark:bg-[#3A3732]');
+        btn.classList.add('bg-[#262421]', 'dark:bg-[#E6E2D8]');
+        dot.classList.add('dark:bg-[#181715]');
         dot.classList.replace('translate-x-1', 'translate-x-4');
         sidebar.classList.remove('hidden');
       } else {
-        btn.classList.remove('bg-indigo-600');
-        btn.classList.add('bg-slate-300', 'dark:bg-slate-700');
+        btn.classList.remove('bg-[#262421]', 'dark:bg-[#E6E2D8]');
+        btn.classList.add('bg-[#C4BFB4]', 'dark:bg-[#3A3732]');
+        dot.classList.remove('dark:bg-[#181715]');
         dot.classList.replace('translate-x-4', 'translate-x-1');
         sidebar.classList.add('hidden');
       }
@@ -2724,17 +2788,17 @@
       if (!container) return;
       container.innerHTML = '';
       if (list.length === 0) {
-        container.innerHTML = `<p class="text-[11px] text-slate-400 text-center py-6">Henüz seçilen yok</p>`;
+        container.innerHTML = `<p class="text-[11px] text-[#8C867B] text-center py-6">Henüz seçilen yok</p>`;
       } else {
         list.forEach((st, idx) => {
           const item = document.createElement('div');
-          item.className = 'flex items-center justify-between bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 text-xs';
+          item.className = 'flex items-center justify-between bg-[#FAF9F6] dark:bg-[#1C1B19] px-2 py-1 sharp-card border border-[#DCD8D0] dark:border-[#33302B] text-xs';
           const label = document.createElement('span');
-          label.className = 'truncate font-medium text-slate-700 dark:text-slate-300';
+          label.className = 'truncate font-medium text-[#262421] dark:text-[#E6E2D8]';
           label.textContent = `${idx + 1}. ${st.name}`;
           const btn = document.createElement('button');
           btn.type = 'button';
-          btn.className = 'text-slate-400 hover:text-rose-500 font-bold ml-1';
+          btn.className = 'text-[#8C867B] hover:text-[#1C1B19] dark:hover:text-[#ECEAE4] font-bold ml-1';
           btn.textContent = '✕';
           btn.addEventListener('click', () => restoreStudentToWheel(st.id));
           item.appendChild(label);
@@ -2782,11 +2846,11 @@
       if (students.length === 0) {
         ctx.save();
         ctx.translate(radius, radius);
-        ctx.fillStyle = '#475569';
+        ctx.fillStyle = '#383530';
         ctx.beginPath();
         ctx.arc(0, 0, radius - 4, 0, 2 * Math.PI);
         ctx.fill();
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#FAF9F6';
         ctx.font = 'bold 12px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('Çarkta öğrenci kalmadı', 0, 4);
@@ -2802,20 +2866,24 @@
       for (let i = 0; i < students.length; i++) {
         const angle = i * sliceAngle;
         ctx.beginPath();
-        ctx.fillStyle = WHEEL_PALETTE[i % WHEEL_PALETTE.length];
+        let colorIdx = i % WHEEL_PALETTE.length;
+        if (i === students.length - 1 && students.length > 1 && colorIdx === 0) {
+          colorIdx = 1;
+        }
+        ctx.fillStyle = WHEEL_PALETTE[colorIdx];
         ctx.moveTo(0, 0);
         ctx.arc(0, 0, radius - 4, angle, angle + sliceAngle);
         ctx.lineTo(0, 0);
         ctx.fill();
 
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#FAF9F6';
+        ctx.lineWidth = 1.4;
         ctx.stroke();
 
         ctx.save();
         ctx.rotate(angle + sliceAngle / 2);
         ctx.textAlign = 'right';
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#FAF9F6';
         ctx.font = students.length > 20 ? 'bold 10px sans-serif' : 'bold 11px sans-serif';
         let displayName = students[i].name;
         if (displayName.length > 13) displayName = displayName.substring(0, 12) + '…';
@@ -2914,7 +2982,7 @@
     }
 
     // =========================================================================
-    // SINIF YÖNETİMİ (MEVCUT ÖĞRENCİ VERİLERİNİ KORUR)
+    // SINIF YÖNETİMİ
     // =========================================================================
     function openClassModal() {
       resetClassForm();
@@ -2930,7 +2998,7 @@
     function resetClassForm() {
       editingClassName = null;
       document.getElementById('classModalTitle').textContent = 'Yeni Sınıf Oluştur / Yönet';
-      document.getElementById('classStudentsLabel').innerHTML = 'Öğrenci İsimleri <span class="text-slate-400 font-normal text-[11px]">(Her satıra bir isim veya virgülle)</span>';
+      document.getElementById('classStudentsLabel').innerHTML = 'Öğrenci İsimleri <span class="text-[#8C867B] font-normal text-[11px]">(Her satıra bir isim veya virgülle)</span>';
       document.getElementById('editClassHint').classList.add('hidden');
       document.getElementById('editExistingStudentsSection').classList.add('hidden');
       document.getElementById('submitClassBtn').textContent = 'Sınıfı Oluştur';
@@ -2942,7 +3010,7 @@
     function editClass(clsName) {
       editingClassName = clsName;
       document.getElementById('classModalTitle').textContent = `Sınıfı Düzenle: ${clsName}`;
-      document.getElementById('classStudentsLabel').innerHTML = 'Yeni Öğrenci Ekle <span class="text-slate-400 font-normal text-[11px]">(İsteğe bağlı - mevcutlara eklenir)</span>';
+      document.getElementById('classStudentsLabel').innerHTML = 'Yeni Öğrenci Ekle <span class="text-[#8C867B] font-normal text-[11px]">(İsteğe bağlı - mevcutlara eklenir)</span>';
       document.getElementById('editClassHint').classList.remove('hidden');
       document.getElementById('editExistingStudentsSection').classList.remove('hidden');
       document.getElementById('newClassNameInput').value = clsName;
@@ -2957,20 +3025,20 @@
       box.innerHTML = '';
       const students = classData[clsName] || [];
       if (students.length === 0) {
-        box.innerHTML = `<p class="text-[11px] text-slate-400">Bu sınıfta öğrenci yok.</p>`;
+        box.innerHTML = `<p class="text-[11px] text-[#8C867B]">Bu sınıfta öğrenci yok.</p>`;
         return;
       }
       students.forEach(st => {
         const row = document.createElement('div');
-        row.className = 'flex items-center justify-between text-xs px-2 py-1 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700';
+        row.className = 'flex items-center justify-between text-xs px-2 py-1 bg-[#F5F3EF] dark:bg-[#252320] sharp-card border border-[#DCD8D0] dark:border-[#33302B]';
 
         const nameSpan = document.createElement('span');
-        nameSpan.className = 'font-medium text-slate-700 dark:text-slate-200 truncate';
+        nameSpan.className = 'font-medium text-[#262421] dark:text-[#E6E2D8] truncate';
         nameSpan.textContent = `${st.name} ${st.surname}`.trim();
 
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
-        delBtn.className = 'text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline ml-2 shrink-0';
+        delBtn.className = 'text-[11px] font-semibold text-red-700 dark:text-red-400 hover:underline ml-2 shrink-0';
         delBtn.textContent = 'Çıkar';
         delBtn.addEventListener('click', () => {
           if (!confirm(`"${st.name} ${st.surname}" öğrencisini silmek istiyor musunuz?`)) return;
@@ -2998,26 +3066,26 @@
       box.innerHTML = '';
       const keys = Object.keys(classData);
       if (keys.length === 0) {
-        box.innerHTML = '<span class="text-xs text-slate-400">Kayıtlı sınıf yok.</span>';
+        box.innerHTML = '<span class="text-xs text-[#8C867B]">Kayıtlı sınıf yok.</span>';
         return;
       }
 
       keys.forEach(cls => {
         const tag = document.createElement('div');
-        tag.className = 'inline-flex items-center gap-1.5 border px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700';
+        tag.className = 'inline-flex items-center gap-1.5 border px-2.5 py-1 sharp-card text-xs font-semibold bg-[#F5F3EF] dark:bg-[#252320] border-[#D4CFC4] dark:border-[#38352F]';
 
         const label = document.createElement('span');
         label.textContent = `${cls} (${classData[cls].length})`;
 
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
-        editBtn.className = 'text-indigo-600 dark:text-indigo-400 font-semibold hover:underline ml-1';
+        editBtn.className = 'text-[#1C1B19] dark:text-[#ECEAE4] font-bold underline ml-1';
         editBtn.textContent = 'Düzenle';
         editBtn.addEventListener('click', () => editClass(cls));
 
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
-        delBtn.className = 'text-slate-400 hover:text-rose-600 font-bold ml-1';
+        delBtn.className = 'text-[#8C867B] hover:text-red-700 font-bold ml-1';
         delBtn.textContent = '✕';
         delBtn.addEventListener('click', () => deleteClass(cls));
 
@@ -3112,131 +3180,7 @@
     }
 
     // =========================================================================
-    // YEDEKLEME & GERİ YÜKLEME (JSON)
-    // =========================================================================
-    function openBackupModal() {
-      const classCount = Object.keys(classData).length;
-      const studentCount = Object.values(classData).reduce((acc, arr) => acc + arr.length, 0);
-      document.getElementById('backupStatsText').textContent = `Mevcut kayıt: ${classCount} sınıf, ${studentCount} öğrenci`;
-      document.getElementById('backupPasteInput').value = '';
-      const fileInput = document.getElementById('backupFileInput');
-      if (fileInput) fileInput.value = '';
-      document.getElementById('backupModal').classList.remove('hidden');
-    }
-
-    function closeBackupModal() {
-      document.getElementById('backupModal').classList.add('hidden');
-    }
-
-    function buildBackupPayloadString() {
-      return JSON.stringify({
-        app: 'SinifCepte',
-        version: 2,
-        exportedAt: new Date().toISOString(),
-        classData,
-        bulkTasksData
-      }, null, 2);
-    }
-
-    async function exportBackupJson() {
-      const jsonStr = buildBackupPayloadString();
-      const fileName = `SinifCepte_Yedek_${getTodayKey()}.json`;
-
-      try {
-        const capPlugins = window.Capacitor && window.Capacitor.Plugins;
-        if (capPlugins && capPlugins.Filesystem && capPlugins.Share) {
-          const saved = await capPlugins.Filesystem.writeFile({
-            path: fileName,
-            data: jsonStr,
-            directory: 'CACHE',
-            encoding: 'utf8'
-          });
-          await capPlugins.Share.share({
-            title: 'Sınıf Cepte Yedeği',
-            text: `${getTodayKey()} tarihli Sınıf Cepte veri yedeği`,
-            url: saved.uri,
-            dialogTitle: 'Yedek Dosyasını Kaydet veya Paylaş'
-          });
-          showToast('Yedek paylaşım menüsü açıldı', 'success');
-          return;
-        }
-
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-        showToast('Yedek dosyası indirildi', 'success');
-      } catch (e) {
-        if (e && e.name === 'AbortError') return;
-        showToast('Yedek dışa aktarılamadı', 'error');
-      }
-    }
-
-    async function copyBackupToClipboard() {
-      try {
-        await navigator.clipboard.writeText(buildBackupPayloadString());
-        showToast('Yedek verisi panoya kopyalandı', 'success');
-      } catch (e) {
-        showToast('Panoya kopyalanamadı', 'error');
-      }
-    }
-
-    function applyImportedJsonString(rawText) {
-      try {
-        const parsed = JSON.parse(rawText);
-        if (!parsed || typeof parsed !== 'object' || !parsed.classData || typeof parsed.classData !== 'object') {
-          showToast('Geçersiz yedek formatı', 'error');
-          return;
-        }
-        const classCount = Object.keys(parsed.classData).length;
-        if (!confirm(`Yedekteki ${classCount} sınıf geri yüklenecek ve mevcut verilerin üzerine yazılacak. Devam edilsin mi?`)) {
-          return;
-        }
-
-        pushHistory();
-        const normalizedClasses = {};
-        Object.keys(parsed.classData).forEach(cls => {
-          if (Array.isArray(parsed.classData[cls])) {
-            normalizedClasses[cls] = parsed.classData[cls].map(normalizeStudent);
-          }
-        });
-
-        classData = normalizedClasses;
-        bulkTasksData = (parsed.bulkTasksData && typeof parsed.bulkTasksData === 'object') ? parsed.bulkTasksData : {};
-        activeClass = Object.keys(classData)[0] || '';
-        persistChanges();
-        renderClassTabs();
-        closeBackupModal();
-        showToast('Yedek başarıyla geri yüklendi', 'success');
-      } catch (e) {
-        showToast('JSON dosyası okunamadı. Dosya bozuk olabilir.', 'error');
-      }
-    }
-
-    function handleBackupFileSelect(event) {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => applyImportedJsonString(String(reader.result || ''));
-      reader.readAsText(file, 'utf-8');
-    }
-
-    function importBackupFromText() {
-      const text = document.getElementById('backupPasteInput').value.trim();
-      if (!text) {
-        showToast('Lütfen yedek metnini yapıştırın', 'warning');
-        return;
-      }
-      applyImportedJsonString(text);
-    }
-
-    // =========================================================================
-    // GÖRÜNÜM, TEMA VE ANDROID DONANIM ENTEGRASYONU
+    // GÖRÜNÜM, TEMA, SWIPE & ANDROID DONANIM ENTEGRASYONU
     // =========================================================================
     function setMode(mode) {
       currentMode = mode;
@@ -3244,11 +3188,11 @@
       const bList = document.getElementById('btnList');
       const bGrid = document.getElementById('btnGrid');
       if (mode === 'list') {
-        bList.className = 'px-2.5 py-1 text-xs font-bold rounded-md transition bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm';
-        bGrid.className = 'px-2.5 py-1 text-xs font-bold rounded-md transition text-slate-500 dark:text-slate-400';
+        bList.className = 'h-full px-2 text-xs font-bold sharp-card transition bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715]';
+        bGrid.className = 'h-full px-2 text-xs font-bold sharp-card transition text-[#6E6960] dark:text-[#9E9990]';
       } else {
-        bGrid.className = 'px-2.5 py-1 text-xs font-bold rounded-md transition bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm';
-        bList.className = 'px-2.5 py-1 text-xs font-bold rounded-md transition text-slate-500 dark:text-slate-400';
+        bGrid.className = 'h-full px-2 text-xs font-bold sharp-card transition bg-[#262421] text-[#FAF9F6] dark:bg-[#E6E2D8] dark:text-[#181715]';
+        bList.className = 'h-full px-2 text-xs font-bold sharp-card transition text-[#6E6960] dark:text-[#9E9990]';
       }
       render();
     }
@@ -3258,28 +3202,35 @@
       if (!statusBar) return;
       try {
         statusBar.setStyle({ style: isDark ? 'DARK' : 'LIGHT' });
-        statusBar.setBackgroundColor({ color: isDark ? '#0f172a' : '#ffffff' });
+        statusBar.setBackgroundColor({ color: isDark ? '#1C1B19' : '#FAF9F6' });
       } catch (e) {}
+    }
+
+    function updateThemeUI(isDark) {
+      const label = document.getElementById('drawerThemeLabel');
+      if (label) label.textContent = isDark ? 'Koyu' : 'Açık';
+      syncAndroidStatusBar(isDark);
     }
 
     function initTheme() {
       const saved = localStorage.getItem('theme_preference');
       const isDark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
       document.documentElement.classList.toggle('dark', isDark);
-      document.getElementById('themeToggleIcon').textContent = isDark ? '☀️' : '🌙';
-      syncAndroidStatusBar(isDark);
+      updateThemeUI(isDark);
     }
 
     function toggleDarkMode() {
       const isDark = document.documentElement.classList.toggle('dark');
       localStorage.setItem('theme_preference', isDark ? 'dark' : 'light');
-      document.getElementById('themeToggleIcon').textContent = isDark ? '☀️' : '🌙';
-      syncAndroidStatusBar(isDark);
+      updateThemeUI(isDark);
     }
 
     function closeTopOpenModal() {
+      if (isSideDrawerOpen()) {
+        closeSideDrawer();
+        return true;
+      }
       const modalOrder = [
-        { id: 'backupModal', close: closeBackupModal },
         { id: 'profileModal', close: closeProfileModal },
         { id: 'noteModal', close: closeNoteModal },
         { id: 'bulkTaskModal', close: closeBulkTaskModal },
@@ -3297,7 +3248,6 @@
       return false;
     }
 
-    // Android Geri Tuşu & Masaüstü ESC Desteği
     let lastBackPress = 0;
     function setupNavigationListeners() {
       document.addEventListener('keydown', e => {
@@ -3310,6 +3260,28 @@
         });
       });
 
+      // Sol kenardan kaydırarak menü açma/kapama
+      let touchStartX = 0;
+      let touchStartY = 0;
+      document.addEventListener('touchstart', e => {
+        if (!e.touches || e.touches.length !== 1) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+
+      document.addEventListener('touchend', e => {
+        if (!e.changedTouches || e.changedTouches.length !== 1) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
+        if (dy > 50) return;
+        if (!isSideDrawerOpen() && touchStartX < 32 && dx > 60) {
+          openSideDrawer();
+        } else if (isSideDrawerOpen() && dx < -60) {
+          closeSideDrawer();
+        }
+      }, { passive: true });
+
+      // Android donanım geri tuşu
       const capApp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
       if (capApp && typeof capApp.addListener === 'function') {
         capApp.addListener('backButton', () => {
